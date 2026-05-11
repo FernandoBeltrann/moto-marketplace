@@ -206,6 +206,52 @@ p { color: var(--muted); line-height: 1.6; }
 .footer { background: var(--dark); color: white; margin-top: 60px; padding: 42px 0; }
 .footer p { color: #b8c5b8; }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+/* Sección “Cómo funciona”: altura según contenido + padding vertical moderado (sin 100vh). */
+.section--como-fullpage {
+  display: block;
+  padding: clamp(24px, 4vw, 40px) 0;
+  scroll-margin-top: 80px;
+  background: linear-gradient(180deg, var(--bg) 0%, #eef1ea 45%, var(--bg) 100%);
+}
+.como-funciona-shell {
+  width: 100%;
+  max-width: min(1400px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(12px, 3vw, 24px);
+  box-sizing: border-box;
+}
+.hero-card--como-fullpage {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0;
+  padding: clamp(20px, 3vw, 32px) clamp(24px, 5vw, 48px);
+  border-radius: clamp(28px, 4vw, 40px);
+  box-shadow: 0 32px 90px rgba(13, 27, 18, 0.1);
+}
+.como-funciona-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: flex-start;
+}
+.como-funciona-steps {
+  display: grid;
+  gap: 10px;
+  max-width: 40rem;
+}
+.hero-card--como-fullpage .como-funciona-steps p {
+  margin: 0;
+}
+.hero-card--como-fullpage .como-funciona-steps strong {
+  color: var(--text);
+  font-weight: 800;
+}
+.como-funciona-cta {
+  margin-top: clamp(20px, 3vw, 28px);
+}
 .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 26px; }
 .kpi { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
 .kpi strong { font-size: 26px; display: block; letter-spacing: -.05em; }
@@ -217,3 +263,4 @@ p { color: var(--muted); line-height: 1.6; }
   .kpi-strip, .stat-grid { grid-template-columns: 1fr 1fr; }
   .hero { padding-top: 42px; }
 }
+
