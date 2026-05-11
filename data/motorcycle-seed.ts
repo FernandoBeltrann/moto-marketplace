@@ -1,26 +1,7 @@
-export type Motorcycle = {
-  id: string;
-  brand: 'Suzuki' | 'Yamaha' | 'TVS' | 'Bajaj';
-  model: string;
-  year: number;
-  slug: string;
-  price: number;
-  promoPrice?: number;
-  category: 'Trabajo' | 'Ciudad' | 'Deportiva' | 'Doble propósito' | 'Scooter' | 'Touring';
-  engineCc: number;
-  monthlyFrom: number;
-  suggestedDownPayment: number;
-  availableCities: string[];
-  tags: string[];
-  shortDescription: string;
-  bestFor: string[];
-  specs: Record<string, string>;
-  priorityScore: number;
-};
+import type { Motorcycle } from '@/types/motorcycle';
 
-// Catálogo semilla para MVP de MotoClick.
-// Solo motos nuevas. Reemplaza precios, disponibilidad e imágenes con datos reales de agencia/Odoo/Supabase antes de correr campañas.
-export const motorcycles: Motorcycle[] = [
+/** Solo para scripts de seed / generación SQL. El sitio lee el catálogo desde Supabase. */
+export const motorcycleSeed: Motorcycle[] = [
   {
     id: 'yamaha-fz-s-2025', brand: 'Yamaha', model: 'FZ-S', year: 2025, slug: 'fz-s-2025', price: 67999,
     category: 'Ciudad', engineCc: 149, monthlyFrom: 2350, suggestedDownPayment: 14000,

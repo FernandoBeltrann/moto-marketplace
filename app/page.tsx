@@ -4,8 +4,11 @@ import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getMotorcycles } from '@/lib/catalog';
 import { site } from '@/lib/site';
 
-export default function HomePage() {
-  const featured = getMotorcycles().slice(0, 6);
+export const revalidate = 120;
+
+export default async function HomePage() {
+  const all = await getMotorcycles();
+  const featured = all.slice(0, 6);
   return (
     <main>
       <section className="hero">

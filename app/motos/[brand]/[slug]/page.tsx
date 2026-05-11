@@ -1,21 +1,26 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { LeadForm } from '@/components/LeadForm';
 import { PaymentCalculator } from '@/components/PaymentCalculator';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { brandPath, formatMXN, getMotorcycleByPath, getMotorcycles, productPath } from '@/lib/catalog';
+import { PrecioContado } from '@/components/PrecioContado';
+import { brandPath, cashPrice, formatMXN, getMotorcycleByPath, getMotorcycles, productPath } from '@/lib/catalog';
 import { site } from '@/lib/site';
+
+export const revalidate = 120;
 
 type Props = { params: Promise<{ brand: string; slug: string }> };
 
 export async function generateStaticParams() {
-  return getMotorcycles().map((m) => ({ brand: brandPath(m.brand), slug: m.slug }));
+  const list = await getMotorcycles();
+  return list.map((m) => ({ brand: brandPath(m.brand), slug: m.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { brand, slug } = await params;
-  const moto = getMotorcycleByPath(brand.replaceAll('-', ' '), slug);
+  const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) return { title: 'Moto no encontrada' };
   return {
     title: `${moto.brand} ${moto.model} ${moto.year} a crédito`,
@@ -27,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { brand, slug } = await params;
-  const moto = getMotorcycleByPath(brand.replaceAll('-', ' '), slug);
+  const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) notFound();
 
   const jsonLd = {
@@ -35,8 +40,10 @@ export default async function ProductPage({ params }: Props) {
     name: `${moto.brand} ${moto.model} ${moto.year}`,
     brand: { '@type': 'Brand', name: moto.brand },
     description: moto.shortDescription,
-    offers: { '@type': 'Offer', priceCurrency: 'MXN', price: moto.price, availability: 'https://schema.org/InStock', url: `${site.url}${productPath(moto)}` }
+    offers: { '@type': 'Offer', priceCurrency: 'MXN', price: cashPrice(moto), availability: 'https://schema.org/InStock', url: `${site.url}${productPath(moto)}` }
   };
+
+  const hasPhoto = Boolean(moto.imageUrl);
 
   return (
     <main className="product-hero">
@@ -44,7 +51,26 @@ export default async function ProductPage({ params }: Props) {
       <div className="container product-grid">
         <div>
           <Link href="/motos" className="small muted">← Volver al catálogo</Link>
-          <div className="bike-visual" style={{ borderRadius: 32, height: 430, marginTop: 18 }}><div className="bike-line" /></div>
+          <div
+            className={
+              'bike-visual' +
+              (hasPhoto ? ' bike-visual--photo bike-visual--photo-hero' : '')
+            }
+            style={{ borderRadius: 32, height: 430, marginTop: 18 }}
+          >
+            {hasPhoto && moto.imageUrl ? (
+              <Image
+                src={moto.imageUrl}
+                alt={`${moto.brand} ${moto.model} ${moto.year}`}
+                fill
+                className="bike-visual__img"
+                sizes="(max-width: 900px) 100vw, 560px"
+                priority
+              />
+            ) : (
+              <div className="bike-line" />
+            )}
+          </div>
           <section className="section" style={{ paddingTop: 26 }}>
             <h2>¿Para quién es buena?</h2>
             <div className="tags">{moto.bestFor.map((x) => <span className="tag" key={x}>{x}</span>)}</div>
@@ -60,7 +86,7 @@ export default async function ProductPage({ params }: Props) {
           <h1>{moto.brand} {moto.model} {moto.year}</h1>
           <p>{moto.shortDescription}</p>
           <div className="stat-grid">
-            <div className="stat"><span className="small muted">Precio</span><strong>{formatMXN(moto.price)}</strong></div>
+            <div className="stat stat--precio"><span className="small muted">Precio</span><PrecioContado moto={moto} /></div>
             <div className="stat">
               <span className="small muted">Desde</span>
               <strong>
@@ -70,7 +96,7 @@ export default async function ProductPage({ params }: Props) {
             </div>
             <div className="stat"><span className="small muted">Enganche sugerido</span><strong>{formatMXN(moto.suggestedDownPayment)}</strong></div>
           </div>
-          <PaymentCalculator price={moto.price} suggestedDownPayment={moto.suggestedDownPayment} motorcycleId={moto.id} />
+          <PaymentCalculator price={cashPrice(moto)} suggestedDownPayment={moto.suggestedDownPayment} motorcycleId={moto.id} />
           <div className="calculator">
             <h3>Iniciar compra</h3>
             <LeadForm motorcycleId={moto.id} motorcycleName={`${moto.brand} ${moto.model} ${moto.year}`} />

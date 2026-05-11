@@ -16,7 +16,7 @@ MVP listo para subir a GitHub y desplegar en Railway/Vercel. Está diseñado par
 - Next.js App Router
 - TypeScript
 - CSS simple sin dependencia pesada de UI
-- Catálogo semilla en `data/motorcycles.ts`
+- Catálogo en **Supabase** (`public.motorcycles`); semilla para scripts en `data/motorcycle-seed.ts`
 - API Route `/api/leads` para guardar leads
 - Supabase opcional para persistencia
 - Sitemap, robots y metadata dinámica
@@ -63,7 +63,14 @@ Si vas a guardar leads en Supabase:
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=xxxxx
 SUPABASE_LEADS_TABLE=marketplace_leads
+SUPABASE_MOTORCYCLES_TABLE=motorcycles
 ```
+
+El build y las páginas del catálogo necesitan esas variables para leer motos desde Postgres. Imágenes: sube archivos a **Supabase Storage** (bucket público) y guarda la URL en `motorcycles.image_url` (opcional: `gallery_urls` JSON).
+
+En CI sin credenciales, puedes compilar con `SKIP_DB_CATALOG=1` (usa `data/motorcycle-seed.ts` solo para el build; no sustituye producción).
+
+En `npm run dev`, si faltan esas variables, el catálogo usa la misma semilla local para no romper la UI (en `next start` / producción siguen siendo obligatorias).
 
 4. Ejecuta el SQL en `sql/supabase_schema.sql` dentro de Supabase.
 
@@ -84,9 +91,13 @@ components/
   SearchBox.tsx
   WhatsAppButton.tsx
 data/
-  motorcycles.ts                 Catálogo semilla
+  motorcycle-seed.ts             Semilla para `npm run seed:motorcycles` / SQL
 lib/
-  catalog.ts
+  catalog.ts                     Lectura async desde Supabase
+  catalog-format.ts              URLs y formato MXN (sin Supabase; usable en cliente)
+  supabase/server.ts             Cliente service role (servidor)
+types/
+  motorcycle.ts
   finance.ts
   analytics.ts
   site.ts
@@ -124,33 +135,15 @@ Importante: los precios son datos semilla para desarrollo. Antes de usar campañ
 
 ## Cómo manejar el catálogo
 
-### Etapa 1: archivo TypeScript
+1. Ejecuta `sql/supabase_schema.sql` (y `sql/motorcycles_add_images.sql` si la tabla ya existía sin columnas de foto).
+2. Puebla datos: `npm run seed:motorcycles` o pega `sql/seed_motorcycles.sql` en el SQL editor.
+3. Configura `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en el entorno de build y runtime.
 
-Usa `data/motorcycles.ts`. Es lo más rápido para lanzar, revisar UX y probar campañas.
+Columnas relevantes: `id`, `brand`, `model`, `year`, `slug`, `price`, `promo_price`, `category`, `engine_cc`, `monthly_from`, `suggested_down_payment`, `available_cities`, `tags`, `short_description`, `best_for`, `specs`, `priority_score`, `published`, `image_url`, `gallery_urls`.
 
-### Etapa 2: Supabase
+Las páginas usan **ISR** (`revalidate` 120s) para refrescar catálogo sin redeploy constante.
 
-Crea tabla `motorcycles` con columnas similares a:
-
-- id
-- brand
-- model
-- year
-- slug
-- price
-- category
-- engine_cc
-- monthly_from
-- suggested_down_payment
-- available_cities
-- tags
-- short_description
-- best_for
-- specs
-- priority_score
-- active
-
-### Etapa 3: integración con Odoo/dealers
+### Integración con Odoo/dealers
 
 Cuando haya operación real, sincroniza:
 

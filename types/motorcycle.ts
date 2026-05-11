@@ -1,0 +1,24 @@
+/** Catálogo de moto (dominio). Los valores vienen de Postgres vía `lib/catalog`. */
+export type Motorcycle = {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  slug: string;
+  price: number;
+  promoPrice?: number | null;
+  category: string;
+  engineCc: number;
+  monthlyFrom: number;
+  suggestedDownPayment: number;
+  availableCities: string[];
+  tags: string[];
+  shortDescription: string;
+  bestFor: string[];
+  specs: Record<string, string>;
+  priorityScore: number;
+  /** URL pública (p. ej. Supabase Storage). */
+  imageUrl?: string | null;
+  /** URLs extra para galería / futuro carrusel. */
+  galleryUrls?: string[];
+};

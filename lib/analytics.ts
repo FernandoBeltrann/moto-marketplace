@@ -23,7 +23,16 @@ export function track(event: AnalyticsEvent, properties: Record<string, unknown>
   window.fbq?.('trackCustom', event, properties);
   window.ttq?.track(event, properties);
   window.gtag?.('event', event, properties);
-  import('posthog-js').then(({ default: posthog }) => {
-    posthog.capture(event, properties);
-  });
+  if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim()) return;
+  void import('posthog-js')
+    .then(({ default: posthog }) => {
+      try {
+        posthog.capture(event, properties);
+      } catch {
+        /* no-op */
+      }
+    })
+    .catch(() => {
+      /* fetch / chunk fallido: no romper UX */
+    });
 }

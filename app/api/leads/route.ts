@@ -42,24 +42,26 @@ export async function POST(req: NextRequest) {
       console.log('Lead received without Supabase configured:', lead);
     }
 
-    const distinctId = req.headers.get('x-posthog-distinct-id') || body.phone || 'anonymous';
-    const sessionId = req.headers.get('x-posthog-session-id') || undefined;
     const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId,
-      event: 'lead_submitted_server',
-      properties: {
-        motorcycleId: body.motorcycleId,
-        motorcycleName: body.motorcycleName,
-        city: body.city,
-        purchaseTiming: body.purchaseTiming,
-        path: body.path,
-        utm: body.utm,
-        source: 'motoclick_marketplace_mvp',
-        ...(sessionId ? { $session_id: sessionId } : {}),
-      },
-    });
-    await shutdownPostHog();
+    if (posthog) {
+      const distinctId = req.headers.get('x-posthog-distinct-id') || body.phone || 'anonymous';
+      const sessionId = req.headers.get('x-posthog-session-id') || undefined;
+      posthog.capture({
+        distinctId,
+        event: 'lead_submitted_server',
+        properties: {
+          motorcycleId: body.motorcycleId,
+          motorcycleName: body.motorcycleName,
+          city: body.city,
+          purchaseTiming: body.purchaseTiming,
+          path: body.path,
+          utm: body.utm,
+          source: 'motoclick_marketplace_mvp',
+          ...(sessionId ? { $session_id: sessionId } : {}),
+        },
+      });
+      await shutdownPostHog();
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

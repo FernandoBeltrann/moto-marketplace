@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { track } from '@/lib/analytics';
 import posthog from 'posthog-js';
+import { posthogProjectToken } from '@/lib/posthog-env';
 
 const cities = ['CDMX', 'Estado de México', 'Toluca', 'Puebla', 'Querétaro', 'Cuernavaca', 'Otra ciudad'];
 
@@ -15,10 +16,17 @@ export function LeadForm({ motorcycleId, motorcycleName }: { motorcycleId: strin
     const form = new FormData(e.currentTarget);
     const payload = Object.fromEntries(form.entries());
     const phone = payload.phone as string;
-    posthog.identify(phone, { name: payload.name as string, phone });
+    const phEnabled = Boolean(posthogProjectToken());
+    if (phEnabled) {
+      try {
+        posthog.identify(phone, { name: payload.name as string, phone });
+      } catch {
+        /* PostHog no inicializado o red bloqueada */
+      }
+    }
     track('submit_lead', { motorcycleId, motorcycleName, city: payload.city, purchaseTiming: payload.purchaseTiming });
-    const distinctId = posthog.get_distinct_id();
-    const sessionId = posthog.get_session_id();
+    const distinctId = phEnabled ? posthog.get_distinct_id() : '';
+    const sessionId = phEnabled ? posthog.get_session_id() : undefined;
     const res = await fetch('/api/leads', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-POSTHOG-DISTINCT-ID': distinctId, 'X-POSTHOG-SESSION-ID': sessionId ?? '' },
       body: JSON.stringify({ ...payload, motorcycleId, motorcycleName, path: window.location.pathname, utm: Object.fromEntries(new URLSearchParams(window.location.search)) })

@@ -50,9 +50,31 @@ p { color: var(--muted); line-height: 1.6; }
   overflow: hidden;
   box-shadow: 0 14px 40px rgba(13,27,18,.05);
 }
-.bike-visual { height: 190px; background: radial-gradient(circle at 70% 20%, #d8ffd6, transparent 28%), linear-gradient(135deg, #152217, #304631); display: grid; place-items: center; color: white; position: relative; }
+.bike-visual { height: 190px; background: radial-gradient(circle at 70% 20%, #d8ffd6, transparent 28%), linear-gradient(135deg, #152217, #304631); display: grid; place-items: center; color: white; position: relative; overflow: hidden; }
 .bike-visual:before, .bike-visual:after { content: ''; position: absolute; bottom: 42px; width: 58px; height: 58px; border: 8px solid rgba(255,255,255,.75); border-radius: 50%; }
 .bike-visual:before { left: 72px; } .bike-visual:after { right: 72px; }
+/* Fotos reales: mismo look que el resto del sitio (sin bloque verde del placeholder). */
+.bike-visual--photo {
+  display: block;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.bike-visual--photo:before, .bike-visual--photo:after { display: none; }
+.bike-visual--photo .bike-line { display: none; }
+.bike-visual--photo-hero {
+  box-shadow: 0 16px 48px rgba(13, 27, 18, 0.06);
+  padding: clamp(12px, 3vw, 28px);
+}
+/* Tarjetas: aire alrededor de la foto (el hero ya lleva padding en --photo-hero). */
+.bike-visual--photo:not(.bike-visual--photo-hero) {
+  padding: 10px 12px;
+}
+/* next/image + fill: sin object-fit el navegador deforma la imagen (aquí no usamos Tailwind). */
+.bike-visual__img {
+  object-fit: contain;
+  object-position: center;
+}
 .bike-line { width: 160px; height: 54px; border: 9px solid rgba(255,255,255,.95); border-left: 0; border-bottom: 0; transform: skew(-22deg); border-radius: 18px; }
 .card-body {
   flex: 1;
@@ -97,6 +119,76 @@ p { color: var(--muted); line-height: 1.6; }
 }
 .price-suffix {
   white-space: nowrap;
+}
+.price-row-price {
+  min-width: 0;
+}
+.precio-contado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin-top: 2px;
+  justify-content: flex-end;
+}
+.precio-contado--compact {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.precio-contado__antes {
+  text-decoration: line-through;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+.precio-contado__ahora {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--green-dark);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+.precio-contado__pill {
+  font-size: 11px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #e03131, #c92a2a);
+  color: #fff;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.precio-contado--compact .precio-contado__antes {
+  font-size: 12px;
+}
+.precio-contado--compact .precio-contado__ahora {
+  font-size: 18px;
+}
+.precio-contado--compact .precio-contado__pill {
+  font-size: 10px;
+  padding: 3px 7px;
+}
+.precio-contado__solo {
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+.stat--precio .precio-contado {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+.stat--precio .precio-contado__ahora {
+  font-size: clamp(22px, 5vw, 28px);
+}
+.stat--precio .precio-contado__solo {
+  font-size: clamp(22px, 5vw, 28px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.stat--precio .precio-contado--compact,
+.stat--precio .precio-contado {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
 }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }

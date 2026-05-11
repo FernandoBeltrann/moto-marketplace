@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:motorcycles": "npx tsx --env-file=.env.local scripts/seed-motorcycles.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "latest",

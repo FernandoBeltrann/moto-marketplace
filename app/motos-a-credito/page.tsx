@@ -3,13 +3,15 @@ import Link from 'next/link';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getMotorcycles } from '@/lib/catalog';
 
+export const revalidate = 120;
+
 export const metadata: Metadata = {
   title: 'Motos a crédito',
   description: 'Compra una moto nueva a crédito. Calcula mensualidades estimadas y empieza tu proceso con financiamiento gestionado por Finva.'
 };
 
-export default function FinancingPage() {
-  const motos = getMotorcycles().filter((m) => m.monthlyFrom).slice(0, 9);
+export default async function FinancingPage() {
+  const motos = (await getMotorcycles()).filter((m) => m.monthlyFrom).slice(0, 9);
   return (
     <main>
       <section className="hero">

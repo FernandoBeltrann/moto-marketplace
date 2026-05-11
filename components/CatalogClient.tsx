@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Motorcycle } from '@/data/motorcycles';
+import { cashPrice } from '@/lib/catalog-format';
+import type { Motorcycle } from '@/types/motorcycle';
 import { MotorcycleCard } from './MotorcycleCard';
 import { track } from '@/lib/analytics';
 
@@ -19,7 +20,7 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
     return (!q || text.includes(q.toLowerCase())) &&
       (!brand || m.brand === brand) &&
       (!category || m.category === category) &&
-      (!maxPrice || m.price <= Number(maxPrice));
+      (!maxPrice || cashPrice(m) <= Number(maxPrice));
   }), [motos, q, brand, category, maxPrice]);
 
   return (

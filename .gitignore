@@ -5,3 +5,8 @@ node_modules
 .DS_Store
 leads.local.json
 *.tsbuildinfo
+
+# Cursor / skills locales (MCP y skills copiadas varían por máquina)
+.cursor/
+.agents/
+skills-lock.json

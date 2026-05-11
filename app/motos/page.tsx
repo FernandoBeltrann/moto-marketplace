@@ -2,13 +2,15 @@ import type { Metadata } from 'next';
 import { CatalogClient } from '@/components/CatalogClient';
 import { getMotorcycles } from '@/lib/catalog';
 
+export const revalidate = 120;
+
 export const metadata: Metadata = {
   title: 'Catálogo de motos nuevas',
   description: 'Explora motos nuevas por marca, precio, uso y mensualidades estimadas. Compra ahora y recoge en tu distribuidor mas cercano.'
 };
 
-export default function CatalogPage() {
-  const motos = getMotorcycles();
+export default async function CatalogPage() {
+  const motos = await getMotorcycles();
   return (
     <main className="section">
       <div className="container">

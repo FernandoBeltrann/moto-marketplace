@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { estimateMonthlyPayment, TERMS } from '@/lib/finance';
-import { formatMXN } from '@/lib/catalog';
+import { formatMXN } from '@/lib/catalog-format';
 import { track } from '@/lib/analytics';
 
 export function PaymentCalculator({ price, suggestedDownPayment, motorcycleId }: { price: number; suggestedDownPayment: number; motorcycleId: string }) {
