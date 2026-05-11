@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { getPostHogClient, shutdownPostHog } from '@/lib/posthog-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +41,25 @@ export async function POST(req: NextRequest) {
     } else {
       console.log('Lead received without Supabase configured:', lead);
     }
+
+    const distinctId = req.headers.get('x-posthog-distinct-id') || body.phone || 'anonymous';
+    const sessionId = req.headers.get('x-posthog-session-id') || undefined;
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId,
+      event: 'lead_submitted_server',
+      properties: {
+        motorcycleId: body.motorcycleId,
+        motorcycleName: body.motorcycleName,
+        city: body.city,
+        purchaseTiming: body.purchaseTiming,
+        path: body.path,
+        utm: body.utm,
+        source: 'motoclick_marketplace_mvp',
+        ...(sessionId ? { $session_id: sessionId } : {}),
+      },
+    });
+    await shutdownPostHog();
 
     return NextResponse.json({ ok: true });
   } catch (error) {

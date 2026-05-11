@@ -5,7 +5,9 @@ export type AnalyticsEvent =
   | 'use_calculator'
   | 'start_financing'
   | 'click_whatsapp'
-  | 'submit_lead';
+  | 'submit_lead'
+  | 'search_catalog'
+  | 'filter_catalog';
 
 declare global {
   interface Window {
@@ -21,4 +23,7 @@ export function track(event: AnalyticsEvent, properties: Record<string, unknown>
   window.fbq?.('trackCustom', event, properties);
   window.ttq?.track(event, properties);
   window.gtag?.('event', event, properties);
+  import('posthog-js').then(({ default: posthog }) => {
+    posthog.capture(event, properties);
+  });
 }

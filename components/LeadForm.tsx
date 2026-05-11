@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { track } from '@/lib/analytics';
+import posthog from 'posthog-js';
 
 const cities = ['CDMX', 'Estado de México', 'Toluca', 'Puebla', 'Querétaro', 'Cuernavaca', 'Otra ciudad'];
 
@@ -13,9 +14,13 @@ export function LeadForm({ motorcycleId, motorcycleName }: { motorcycleId: strin
     setStatus('loading');
     const form = new FormData(e.currentTarget);
     const payload = Object.fromEntries(form.entries());
-    track('submit_lead', { motorcycleId, motorcycleName });
+    const phone = payload.phone as string;
+    posthog.identify(phone, { name: payload.name as string, phone });
+    track('submit_lead', { motorcycleId, motorcycleName, city: payload.city, purchaseTiming: payload.purchaseTiming });
+    const distinctId = posthog.get_distinct_id();
+    const sessionId = posthog.get_session_id();
     const res = await fetch('/api/leads', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-POSTHOG-DISTINCT-ID': distinctId, 'X-POSTHOG-SESSION-ID': sessionId ?? '' },
       body: JSON.stringify({ ...payload, motorcycleId, motorcycleName, path: window.location.pathname, utm: Object.fromEntries(new URLSearchParams(window.location.search)) })
     });
     setStatus(res.ok ? 'sent' : 'error');

@@ -10,17 +10,19 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "latest",
+    "lucide-react": "latest",
     "next": "latest",
+    "posthog-js": "^1.372.10",
+    "posthog-node": "^5.33.4",
     "react": "latest",
-    "react-dom": "latest",
-    "lucide-react": "latest"
+    "react-dom": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "latest",
     "eslint": "latest",
-    "eslint-config-next": "latest"
+    "eslint-config-next": "latest",
+    "typescript": "latest"
   }
 }

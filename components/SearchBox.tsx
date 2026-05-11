@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { track } from '@/lib/analytics';
 
 export function SearchBox() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export function SearchBox() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    track('search_catalog', { query: q, budget, useCase });
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (budget) params.set('budget', budget);
