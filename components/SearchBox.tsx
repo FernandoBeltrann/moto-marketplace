@@ -1,0 +1,42 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+export function SearchBox() {
+  const router = useRouter();
+  const [q, setQ] = useState('');
+  const [budget, setBudget] = useState('');
+  const [useCase, setUseCase] = useState('');
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (budget) params.set('budget', budget);
+    if (useCase) params.set('category', useCase);
+    router.push(`/motos?${params.toString()}`);
+  }
+
+  return (
+    <form className="search-panel" onSubmit={submit}>
+      <input className="input" placeholder="Busca marca o modelo" value={q} onChange={(e) => setQ(e.target.value)} />
+      <select className="select" value={budget} onChange={(e) => setBudget(e.target.value)}>
+        <option value="">Presupuesto</option>
+        <option value="50000">Hasta $50,000</option>
+        <option value="80000">Hasta $80,000</option>
+        <option value="120000">Hasta $120,000</option>
+        <option value="200000">Hasta $200,000</option>
+      </select>
+      <select className="select" value={useCase} onChange={(e) => setUseCase(e.target.value)}>
+        <option value="">Uso</option>
+        <option value="Trabajo">Trabajo</option>
+        <option value="Ciudad">Ciudad</option>
+        <option value="Deportiva">Deportiva</option>
+        <option value="Doble propósito">Doble propósito</option>
+        <option value="Scooter">Scooter</option>
+      </select>
+      <button className="btn green">Ver motos</button>
+    </form>
+  );
+}
