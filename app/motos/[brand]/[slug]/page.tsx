@@ -103,7 +103,7 @@ export default async function ProductPage({ params }: Props) {
             <div style={{ height: 10 }} />
             <WhatsAppButton motorcycleId={moto.id} text={`Hola, quiero información para comprar la ${moto.brand} ${moto.model} ${moto.year}`} />
           </div>
-          <p className="small muted">Disponible en: {moto.availableCities.join(', ')}. Validar inventario antes de prometer entrega.</p>
+          <p className="small muted">Envio incluido en CDMX y area metropolitana. En el resto del pais se recoge en agencia con posibilidad de envio, dependiendo de disponibilidad.</p>
         </aside>
       </div>
     </main>

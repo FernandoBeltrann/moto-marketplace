@@ -1,4 +1,4 @@
-export function estimateMonthlyPayment(price: number, downPayment: number, months: number, annualRate = 0.389) {
+export function estimateMonthlyPayment(price: number, downPayment: number, months: number, annualRate = 0.20) {
   const principal = Math.max(price - downPayment, 0);
   const monthlyRate = annualRate / 12;
   if (principal <= 0) return 0;
@@ -6,4 +6,4 @@ export function estimateMonthlyPayment(price: number, downPayment: number, month
   return Math.round(payment);
 }
 
-export const TERMS = [12, 18, 24, 36] as const;
+export const TERMS = [12, 18, 24, 36, 48, 60] as const;

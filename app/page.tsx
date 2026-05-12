@@ -1,14 +1,15 @@
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
+import { HeroMotoRotator } from '@/components/HeroMotoRotator';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getMotorcycles } from '@/lib/catalog';
-import { site } from '@/lib/site';
 
 export const revalidate = 120;
 
 export default async function HomePage() {
   const all = await getMotorcycles();
   const featured = all.slice(0, 6);
+  const heroSlides = all.filter((m) => m.imageUrl).slice(0, 8);
   return (
     <main>
       <section className="hero">
@@ -20,7 +21,7 @@ export default async function HomePage() {
             <SearchBox />
           </div>
           <div className="hero-card">
-            <div className="bike-visual" style={{ borderRadius: 24 }}><div className="bike-line" /></div>
+            <HeroMotoRotator slides={heroSlides} />
             <div className="kpi-strip">
               <div className="kpi"><strong>1</strong><span className="small muted">Elige moto</span></div>
               <div className="kpi"><strong>2</strong><span className="small muted">Calcula pago</span></div>

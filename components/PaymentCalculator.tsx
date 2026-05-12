@@ -13,7 +13,7 @@ export function PaymentCalculator({ price, suggestedDownPayment, motorcycleId }:
   return (
     <div className="calculator">
       <h3>Calcula tu mensualidad</h3>
-      <p className="small">Estimación rápida para ayudar al usuario a avanzar. Ajusta tasa/plazos en <code>lib/finance.ts</code>.</p>
+      <p className="small">Estimación rápida para empezar tu proceso de compra.</p>
       <div className="range-row">
         <label className="small muted">Enganche: <strong>{formatMXN(downPayment)}</strong></label>
         <input type="range" min={Math.round(price * 0.1)} max={Math.round(price * 0.6)} step={1000} value={downPayment} onChange={(e) => { setDownPayment(Number(e.target.value)); track('use_calculator', { motorcycleId }); }} />

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Link from 'next/link';
+import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
 import { site } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="nav-links">
               <Link href="/motos">Motos</Link>
               <Link href="/motos-a-credito">Motos a crédito</Link>
-              <a href="#como-funciona">Cómo funciona</a>
+              <NavComoFuncionaLink />
               <a className="btn green" href={`https://wa.me/${site.whatsapp}?text=Hola%2C%20quiero%20comprar%20una%20moto`} target="_blank">WhatsApp</a>
             </div>
           </div>
