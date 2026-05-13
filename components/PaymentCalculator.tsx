@@ -66,8 +66,7 @@ export function PaymentCalculator({
         </div>
       ) : (
         <p className="small muted calculator-cta-missing">
-          Enlace de compra no disponible para este modelo. Configura <strong>purchase_url</strong> en la moto en
-          Supabase o la variable de entorno <strong>NEXT_PUBLIC_DEFAULT_PURCHASE_URL</strong>.
+          Enlace de compra no disponible para este modelo.
         </p>
       )}
     </div>
