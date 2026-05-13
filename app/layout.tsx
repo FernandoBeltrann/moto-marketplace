@@ -9,6 +9,14 @@ export const metadata: Metadata = {
   title: { default: `${site.name} | Motos nuevas a crédito`, template: `%s | ${site.name}` },
   description: site.description,
   openGraph: { title: site.name, description: site.description, type: 'website', url: site.url },
+  /** URLs absolutas estables (public/) para que Google pueda indexar el favicon en resultados. */
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '48x48', type: 'image/png' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,7 +30,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/motos">Motos</Link>
               <Link href="/motos-a-credito">Motos a crédito</Link>
               <NavComoFuncionaLink />
-              <a className="btn green" href={`https://wa.me/${site.whatsapp}?text=Hola%2C%20quiero%20comprar%20una%20moto`} target="_blank">WhatsApp</a>
+              <a
+                className="btn green"
+                href={`https://wa.me/${site.whatsapp}?text=Hola%2C%20quiero%20comprar%20una%20moto`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={site.whatsappDisplay}
+                aria-label={`WhatsApp ${site.whatsappDisplay}`}
+              >
+                WhatsApp
+              </a>
             </div>
           </div>
         </nav>

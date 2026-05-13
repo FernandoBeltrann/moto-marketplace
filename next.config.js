@@ -35,6 +35,12 @@ const nextConfig = {
   images: {
     remotePatterns: supabaseImageRemotePatterns(),
   },
+  async redirects() {
+    return [
+      /** Rastreadores y clientes que piden solo `/favicon.ico` (Google lo usa a menudo). */
+      { source: '/favicon.ico', destination: '/favicon.png', permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       {

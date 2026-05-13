@@ -3,6 +3,9 @@ export const site = {
   /** Texto del wordmark en nav y footer (ej. dominio). */
   logoText: process.env.NEXT_PUBLIC_LOGO_TEXT || 'motoclick.mx',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-  whatsapp: process.env.NEXT_PUBLIC_FINVA_WHATSAPP || '5215512345678',
-  description: 'Marketplace para encontrar motos nuevas, calcular mensualidad e iniciar compra con financiamiento gestionado por Finva.'
+  /** Dígitos sin + para `wa.me`. En MX WhatsApp suele requerir 521 + 10 dígitos (móvil). */
+  whatsapp: process.env.NEXT_PUBLIC_FINVA_WHATSAPP || '5215610420474',
+  /** Texto visible del WhatsApp en nav u otros CTAs. */
+  whatsappDisplay: '+52 56 1042 0474',
+  description: 'Marketplace para encontrar motos nuevas, calcular mensualidad e iniciar compra con financiamiento.'
 };
