@@ -6,7 +6,9 @@ import { LeadForm } from '@/components/LeadForm';
 import { PaymentCalculator } from '@/components/PaymentCalculator';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { PrecioContado } from '@/components/PrecioContado';
+import { MotorcycleReviews } from '@/components/MotorcycleReviews';
 import { brandPath, cashPrice, formatMXN, getMotorcycleByPath, getMotorcycles, productPath } from '@/lib/catalog';
+import { getMotorcycleReviews } from '@/lib/motorcycle-reviews';
 import { buildProductJsonLd, absoluteAssetUrl } from '@/lib/product-jsonld';
 import { site } from '@/lib/site';
 
@@ -42,7 +44,8 @@ export default async function ProductPage({ params }: Props) {
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) notFound();
 
-  const jsonLd = buildProductJsonLd(moto);
+  const reviews = await getMotorcycleReviews(moto.id);
+  const jsonLd = buildProductJsonLd(moto, { reviews });
 
   const hasPhoto = Boolean(moto.imageUrl);
 
@@ -107,6 +110,7 @@ export default async function ProductPage({ params }: Props) {
           <p className="small muted">Envio incluido en CDMX y area metropolitana. En el resto del pais se recoge en agencia con posibilidad de envio, dependiendo de disponibilidad.</p>
         </aside>
       </div>
+      <MotorcycleReviews reviews={reviews} />
     </main>
   );
 }

@@ -200,6 +200,25 @@ p { color: var(--muted); line-height: 1.6; }
 .stat { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: white; }
 .stat strong { display: block; font-size: 20px; }
 .calculator { background: white; border: 1px solid var(--line); border-radius: 26px; padding: 20px; margin-top: 16px; }
+.moto-reviews { border-top: 1px solid var(--line); margin-top: 8px; padding-bottom: 48px; }
+.moto-reviews-head { margin-bottom: 22px; }
+.moto-reviews-head h2 { margin: 0 0 10px; font-size: clamp(22px, 3vw, 28px); }
+.moto-reviews-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin: 0; color: var(--muted); }
+.moto-reviews-stars { letter-spacing: 2px; font-size: 18px; line-height: 1; color: #d0d6ce; }
+.moto-reviews-star.on { color: var(--green); }
+.moto-reviews-score strong { color: var(--text); font-size: 18px; }
+.moto-reviews-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.moto-review-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: 0 8px 28px rgba(13, 27, 18, 0.05);
+}
+.moto-review-card__meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.moto-review-card__title { margin: 4px 0 6px; font-size: 18px; letter-spacing: -0.02em; color: var(--text); }
+.moto-review-card__author { margin: 0 0 8px; }
+.moto-review-card__body { margin: 0; color: var(--text); line-height: 1.55; }
 .range-row { display: grid; gap: 8px; margin: 14px 0; }
 .lead-form { display: grid; gap: 10px; }
 .notice { background: #fff9e6; border: 1px solid #f5e2a4; color: #66520d; padding: 12px; border-radius: 16px; font-size: 13px; }

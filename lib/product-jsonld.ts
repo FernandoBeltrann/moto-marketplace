@@ -1,8 +1,11 @@
 import type { Motorcycle } from '@/types/motorcycle';
+import type { MotorcycleReview } from '@/types/motorcycle-review';
 import { cashPrice, productPath } from '@/lib/catalog';
 import { site } from '@/lib/site';
 
 const CONTEXT = 'https://schema.org';
+
+export type ProductJsonLdReviews = { reviews: MotorcycleReview[] };
 
 const policyPageUrl = () => `${site.url.replace(/\/$/, '')}/envio-garantia`;
 
@@ -84,7 +87,32 @@ function merchantReturnPolicy() {
   };
 }
 
-export function buildProductJsonLd(moto: Motorcycle): Record<string, unknown> {
+function averageRating(reviews: MotorcycleReview[]): number {
+  if (!reviews.length) return 0;
+  const sum = reviews.reduce((a, r) => a + r.rating, 0);
+  return Math.round((sum / reviews.length) * 10) / 10;
+}
+
+function reviewToJsonLd(r: MotorcycleReview, productName: string, sku: string) {
+  const date = r.publishedAt.includes('T') ? r.publishedAt.slice(0, 10) : r.publishedAt;
+  const node: Record<string, unknown> = {
+    '@type': 'Review',
+    name: r.title || `Reseña de ${r.authorName}`,
+    author: { '@type': 'Person', name: r.authorName },
+    datePublished: date,
+    reviewBody: r.body,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: r.rating,
+      bestRating: 5,
+      worstRating: 1,
+    },
+    itemReviewed: { '@type': 'Product', name: productName, sku },
+  };
+  return node;
+}
+
+export function buildProductJsonLd(moto: Motorcycle, reviewsCtx?: ProductJsonLdReviews): Record<string, unknown> {
   const url = `${site.url.replace(/\/$/, '')}${productPath(moto)}`;
   const images = productImageUrls(moto);
 
@@ -109,6 +137,20 @@ export function buildProductJsonLd(moto: Motorcycle): Record<string, unknown> {
     description: moto.shortDescription,
     offers,
   };
+
+  const reviews = reviewsCtx?.reviews ?? [];
+  if (reviews.length) {
+    product.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: averageRating(reviews),
+      reviewCount: reviews.length,
+      bestRating: 5,
+      worstRating: 1,
+    };
+    const productName = `${moto.brand} ${moto.model} ${moto.year}`;
+    const reviewNodes = reviews.map((r) => reviewToJsonLd(r, productName, moto.id));
+    product.review = reviewNodes.length === 1 ? reviewNodes[0] : reviewNodes;
+  }
 
   if (images.length === 1) product.image = images[0];
   else if (images.length > 1) product.image = images;

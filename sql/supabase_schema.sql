@@ -65,3 +65,21 @@ create trigger tr_motorcycles_set_updated_at
   before update on public.motorcycles
   for each row
   execute function public.motorcycles_set_updated_at();
+
+-- Reseñas por moto (detalle en sql/motorcycle_reviews.sql).
+create table if not exists public.motorcycle_reviews (
+  id uuid primary key default gen_random_uuid(),
+  motorcycle_id text not null references public.motorcycles (id) on delete cascade,
+  author_name text not null,
+  rating smallint not null check (rating >= 1 and rating <= 5),
+  title text,
+  body text not null,
+  published boolean not null default true,
+  published_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_motorcycle_reviews_moto_published
+  on public.motorcycle_reviews (motorcycle_id, published, published_at desc);
+
+alter table public.motorcycle_reviews enable row level security;
