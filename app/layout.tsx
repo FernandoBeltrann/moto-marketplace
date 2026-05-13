@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Link from 'next/link';
 import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
+import { MetaPixel } from '@/components/MetaPixel';
 import { site } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-MX">
       <body>
+        <MetaPixel />
         <nav className="nav">
           <div className="container nav-inner">
             <Link className="logo" href="/">{site.logoText}</Link>
