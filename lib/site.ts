@@ -7,5 +7,10 @@ export const site = {
   whatsapp: process.env.NEXT_PUBLIC_FINVA_WHATSAPP || '5215610420474',
   /** Texto visible del WhatsApp en nav u otros CTAs. */
   whatsappDisplay: '+52 56 1042 0474',
-  description: 'Marketplace para encontrar motos nuevas, calcular mensualidad e iniciar compra con financiamiento.'
+  description: 'Marketplace para encontrar motos nuevas, calcular mensualidad e iniciar compra con financiamiento.',
+  /**
+   * Si la moto no tiene `purchase_url` en Supabase, se usa esta URL (ej. portal Finva genérico).
+   * Útil en local hasta que todas las filas tengan columna rellena.
+   */
+  defaultPurchaseUrl: process.env.NEXT_PUBLIC_DEFAULT_PURCHASE_URL?.trim() || null,
 };

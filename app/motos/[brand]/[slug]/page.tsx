@@ -2,9 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { LeadForm } from '@/components/LeadForm';
 import { PaymentCalculator } from '@/components/PaymentCalculator';
-import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { PrecioContado } from '@/components/PrecioContado';
 import { MotorcycleReviews } from '@/components/MotorcycleReviews';
 import { brandPath, cashPrice, formatMXN, getMotorcycleByPath, getMotorcycles, productPath } from '@/lib/catalog';
@@ -100,13 +98,12 @@ export default async function ProductPage({ params }: Props) {
             </div>
             <div className="stat"><span className="small muted">Enganche sugerido</span><strong>{formatMXN(moto.suggestedDownPayment)}</strong></div>
           </div>
-          <PaymentCalculator price={cashPrice(moto)} suggestedDownPayment={moto.suggestedDownPayment} motorcycleId={moto.id} />
-          <div className="calculator">
-            <h3>Iniciar compra</h3>
-            <LeadForm motorcycleId={moto.id} motorcycleName={`${moto.brand} ${moto.model} ${moto.year}`} />
-            <div style={{ height: 10 }} />
-            <WhatsAppButton motorcycleId={moto.id} text={`Hola, quiero información para comprar la ${moto.brand} ${moto.model} ${moto.year}`} />
-          </div>
+          <PaymentCalculator
+            price={cashPrice(moto)}
+            suggestedDownPayment={moto.suggestedDownPayment}
+            motorcycleId={moto.id}
+            purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
+          />
           <p className="small muted">Envio incluido en CDMX y area metropolitana. En el resto del pais se recoge en agencia con posibilidad de envio, dependiendo de disponibilidad.</p>
         </aside>
       </div>

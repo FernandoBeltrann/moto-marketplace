@@ -21,4 +21,6 @@ export type Motorcycle = {
   imageUrl?: string | null;
   /** URLs extra para galería / futuro carrusel. */
   galleryUrls?: string[];
+  /** URL externa (ej. Finva / CRM) para el CTA «Iniciar compra con un agente». */
+  purchaseUrl?: string | null;
 };

@@ -69,6 +69,8 @@ export function mapMotorcycleRow(row: Record<string, unknown>): Motorcycle {
     priorityScore: asNumber(row.priority_score),
     imageUrl: row.image_url == null || row.image_url === '' ? null : asString(row.image_url),
     galleryUrls: asStringArray(row.gallery_urls),
+    purchaseUrl:
+      row.purchase_url == null || row.purchase_url === '' ? null : asString(row.purchase_url),
   };
 }
 

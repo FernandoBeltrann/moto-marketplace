@@ -4,7 +4,8 @@ export type AnalyticsEvent =
   | 'view_product'
   | 'use_calculator'
   | 'start_financing'
-  | 'click_whatsapp'
+  | 'click_purchase_portal'
+  | 'click_purchase_agent'
   | 'submit_lead'
   | 'search_catalog'
   | 'filter_catalog';

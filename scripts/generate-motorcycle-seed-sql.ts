@@ -32,6 +32,7 @@ const values = motorcycleSeed.map((m) => {
     jsonbDollar('specs', m.specs),
     m.imageUrl ? `'${esc(m.imageUrl)}'` : 'null',
     jsonbDollar('gal', m.galleryUrls ?? []),
+    m.purchaseUrl ? `'${esc(m.purchaseUrl)}'` : 'null',
     'true',
   ];
   // Avoid outer `...${cols}` — a closing `$` before JSON `{` becomes `${` in templates.
@@ -41,7 +42,7 @@ const values = motorcycleSeed.map((m) => {
 const sql = `insert into public.motorcycles (
   id, brand, model, year, slug, price, promo_price, category, engine_cc,
   monthly_from, suggested_down_payment, short_description, priority_score,
-  available_cities, tags, best_for, specs, image_url, gallery_urls, published
+  available_cities, tags, best_for, specs, image_url, gallery_urls, purchase_url, published
 )
 values
 ${values.join(',\n')}
@@ -64,6 +65,7 @@ on conflict (id) do update set
   specs = excluded.specs,
   image_url = excluded.image_url,
   gallery_urls = excluded.gallery_urls,
+  purchase_url = excluded.purchase_url,
   published = excluded.published;
 `;
 

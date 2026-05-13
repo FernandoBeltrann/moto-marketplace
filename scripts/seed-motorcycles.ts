@@ -35,6 +35,7 @@ function main() {
     specs: m.specs,
     image_url: m.imageUrl ?? null,
     gallery_urls: m.galleryUrls ?? [],
+    purchase_url: m.purchaseUrl ?? null,
     published: true,
   }));
 

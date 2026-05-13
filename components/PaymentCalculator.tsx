@@ -4,24 +4,51 @@ import { useMemo, useState } from 'react';
 import { estimateMonthlyPayment, TERMS } from '@/lib/finance';
 import { formatMXN } from '@/lib/catalog-format';
 import { track } from '@/lib/analytics';
+import { PurchaseUrlCta } from '@/components/PurchaseUrlCta';
+import { normalizeOutboundUrl } from '@/lib/purchase-url';
 
-export function PaymentCalculator({ price, suggestedDownPayment, motorcycleId }: { price: number; suggestedDownPayment: number; motorcycleId: string }) {
+export function PaymentCalculator({
+  price,
+  suggestedDownPayment,
+  motorcycleId,
+  purchaseUrl,
+}: {
+  price: number;
+  suggestedDownPayment: number;
+  motorcycleId: string;
+  purchaseUrl?: string | null;
+}) {
   const [downPayment, setDownPayment] = useState(suggestedDownPayment);
   const [months, setMonths] = useState(24);
   const monthly = useMemo(() => estimateMonthlyPayment(price, downPayment, months), [price, downPayment, months]);
+  const agentHref = normalizeOutboundUrl(purchaseUrl);
 
   return (
     <div className="calculator">
       <h3>Calcula tu mensualidad</h3>
-      <p className="small">Estimación rápida para empezar tu proceso de compra.</p>
+      <p className="small">Estimación rápida para empezar tu proceso de compra. Sujeto a aprobación, disponibilidad y precio final.</p>
       <div className="range-row">
         <label className="small muted">Enganche: <strong>{formatMXN(downPayment)}</strong></label>
-        <input type="range" min={Math.round(price * 0.1)} max={Math.round(price * 0.6)} step={1000} value={downPayment} onChange={(e) => { setDownPayment(Number(e.target.value)); track('use_calculator', { motorcycleId }); }} />
+        <input
+          type="range"
+          min={Math.round(price * 0.1)}
+          max={Math.round(price * 0.6)}
+          step={1000}
+          value={downPayment}
+          onChange={(e) => {
+            setDownPayment(Number(e.target.value));
+            track('use_calculator', { motorcycleId });
+          }}
+        />
       </div>
       <div className="range-row">
         <label className="small muted">Plazo</label>
         <select className="select" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
-          {TERMS.map((term) => <option value={term} key={term}>{term} meses</option>)}
+          {TERMS.map((term) => (
+            <option value={term} key={term}>
+              {term} meses
+            </option>
+          ))}
         </select>
       </div>
       <div className="stat">
@@ -31,7 +58,18 @@ export function PaymentCalculator({ price, suggestedDownPayment, motorcycleId }:
           <span className="price-suffix">/mes</span>
         </strong>
       </div>
-      <p className="small muted">Sujeto a aprobación, condiciones de financiera, disponibilidad, precio final y perfil crediticio.</p>
+      {agentHref ? (
+        <div className="calculator-cta">
+          <PurchaseUrlCta href={agentHref} motorcycleId={motorcycleId} variant="green">
+            Cotizar crédito con Finva
+          </PurchaseUrlCta>
+        </div>
+      ) : (
+        <p className="small muted calculator-cta-missing">
+          Enlace de compra no disponible para este modelo. Configura <strong>purchase_url</strong> en la moto en
+          Supabase o la variable de entorno <strong>NEXT_PUBLIC_DEFAULT_PURCHASE_URL</strong>.
+        </p>
+      )}
     </div>
   );
 }

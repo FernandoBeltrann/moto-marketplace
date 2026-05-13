@@ -40,6 +40,7 @@ create table if not exists public.motorcycles (
   specs jsonb not null default '{}'::jsonb,
   image_url text,
   gallery_urls jsonb not null default '[]'::jsonb,
+  purchase_url text,
   published boolean not null default true,
   updated_at timestamptz not null default now()
 );

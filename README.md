@@ -89,7 +89,7 @@ components/
   PaymentCalculator.tsx
   LeadForm.tsx
   SearchBox.tsx
-  WhatsAppButton.tsx
+  PurchaseUrlCta.tsx
 data/
   motorcycle-seed.ts             Semilla para `npm run seed:motorcycles` / SQL
 lib/
@@ -160,7 +160,7 @@ Cuando haya operación real, sincroniza:
 - Mensualidad visible desde tarjeta
 - Página única por moto para SEO y campañas
 - Captura de UTM en leads
-- WhatsApp con texto prellenado
+- CTA de compra: enlaces a `purchase_url` (Supabase) en la ficha de producto
 - Simulador antes del formulario
 - Landing `/motos-a-credito` para campañas y SEO
 
