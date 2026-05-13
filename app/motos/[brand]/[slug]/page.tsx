@@ -7,6 +7,7 @@ import { PaymentCalculator } from '@/components/PaymentCalculator';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { PrecioContado } from '@/components/PrecioContado';
 import { brandPath, cashPrice, formatMXN, getMotorcycleByPath, getMotorcycles, productPath } from '@/lib/catalog';
+import { buildProductJsonLd, absoluteAssetUrl } from '@/lib/product-jsonld';
 import { site } from '@/lib/site';
 
 export const revalidate = 120;
@@ -26,7 +27,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${moto.brand} ${moto.model} ${moto.year} a crédito`,
     description: `Consulta precio, mensualidad estimada y opciones de compra para ${moto.brand} ${moto.model} ${moto.year}. Financiamiento gestionado por Finva.`,
     alternates: { canonical: `${site.url}${productPath(moto)}` },
-    openGraph: { title: `${moto.brand} ${moto.model} ${moto.year}`, description: moto.shortDescription, type: 'website' }
+    openGraph: {
+      title: `${moto.brand} ${moto.model} ${moto.year}`,
+      description: moto.shortDescription,
+      type: 'website',
+      url: `${site.url}${productPath(moto)}`,
+      images: moto.imageUrl ? [{ url: absoluteAssetUrl(moto.imageUrl) }] : undefined,
+    },
   };
 }
 
@@ -35,13 +42,7 @@ export default async function ProductPage({ params }: Props) {
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) notFound();
 
-  const jsonLd = {
-    '@context': 'https://schema.org', '@type': 'Product',
-    name: `${moto.brand} ${moto.model} ${moto.year}`,
-    brand: { '@type': 'Brand', name: moto.brand },
-    description: moto.shortDescription,
-    offers: { '@type': 'Offer', priceCurrency: 'MXN', price: cashPrice(moto), availability: 'https://schema.org/InStock', url: `${site.url}${productPath(moto)}` }
-  };
+  const jsonLd = buildProductJsonLd(moto);
 
   const hasPhoto = Boolean(moto.imageUrl);
 

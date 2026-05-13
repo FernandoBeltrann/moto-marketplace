@@ -51,7 +51,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <p>Marketplace de motos con financiamiento.</p>
             </div>
             <div>
-              <p className="small">Las mensualidades son estimadas y pueden cambiar según precio final, enganche, plazo, perfil crediticio, disponibilidad, financiera y condiciones vigentes.</p>
+              <p className="small">
+                Las mensualidades son estimadas y pueden cambiar según precio final, enganche, plazo, perfil crediticio, disponibilidad, financiera y condiciones vigentes.
+              </p>
+              <p className="small" style={{ marginTop: 12 }}>
+                <Link href="/envio-garantia">Envío y garantía</Link>
+              </p>
             </div>
           </div>
         </footer>
