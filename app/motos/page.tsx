@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { CatalogClient } from '@/components/CatalogClient';
 import { getMotorcycles } from '@/lib/catalog';
 
@@ -17,7 +18,9 @@ export default async function CatalogPage() {
         <span className="eyebrow">Catálogo</span>
         <h1>Motos nuevas disponibles</h1>
         <p>Filtra por marca, precio o uso.</p>
-        <CatalogClient motos={motos} />
+        <Suspense>
+          <CatalogClient motos={motos} />
+        </Suspense>
       </div>
     </main>
   );
