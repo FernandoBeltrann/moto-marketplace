@@ -17,7 +17,7 @@ export function StepOffer({
   const text = encodeURIComponent(
     `Hola, quiero continuar mi solicitud de crédito para ${motorcycleName}. ` +
       `Enganche ${formatMXN(quote.downPayment)}, plazo ${quote.months} meses, pago estimado ${formatMXN(quote.monthly)}/mes. ` +
-      `Folio: ${applicationId}`
+      `Solicitud numero: ${applicationId}`
   );
   const href = `https://wa.me/${site.whatsapp}?text=${text}`;
 
@@ -26,9 +26,9 @@ export function StepOffer({
       
       <div className="offer-card">
         <span className="offer-card__badge">Proceso asistido con IA</span>
-        <h4 className="offer-card__title">Continúa con Finva por WhatsApp</h4>
+        <h4 className="offer-card__title">Continúa con tu AgenteFinva por WhatsApp</h4>
         <p className="offer-card__text small">
-          Tu asesorte dara a conocer la mejor opción de financiamiento.
+          Tu asesor te dará a conocer la mejor opción de financiamiento.
         </p>
         <p className="offer-card__phone small">{site.whatsappDisplay}</p>
         <a
