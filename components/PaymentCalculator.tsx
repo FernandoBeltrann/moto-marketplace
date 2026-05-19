@@ -20,15 +20,23 @@ export function PaymentCalculator({
 }) {
   const [downPayment, setDownPayment] = useState(suggestedDownPayment);
   const [months, setMonths] = useState(24);
-  const monthly = useMemo(() => estimateMonthlyPayment(price, downPayment, months), [price, downPayment, months]);
+  const monthly = useMemo(
+    () => estimateMonthlyPayment(price, downPayment, months),
+    [price, downPayment, months]
+  );
   const agentHref = normalizeOutboundUrl(purchaseUrl);
 
   return (
-    <div className="calculator">
+    <div className="calculator calculator--flush">
       <h3>Calcula tu mensualidad</h3>
-      <p className="small">Estimación rápida para empezar tu proceso de compra. Sujeto a aprobación, disponibilidad y precio final.</p>
+      <p className="small">
+        Estimación rápida para empezar tu proceso de compra. Sujeto a aprobación, disponibilidad y
+        precio final.
+      </p>
       <div className="range-row">
-        <label className="small muted">Enganche: <strong>{formatMXN(downPayment)}</strong></label>
+        <label className="small muted">
+          Enganche: <strong>{formatMXN(downPayment)}</strong>
+        </label>
         <input
           type="range"
           min={Math.round(price * 0.1)}
@@ -43,7 +51,11 @@ export function PaymentCalculator({
       </div>
       <div className="range-row">
         <label className="small muted">Plazo</label>
-        <select className="select" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
+        <select
+          className="select"
+          value={months}
+          onChange={(e) => setMonths(Number(e.target.value))}
+        >
           {TERMS.map((term) => (
             <option value={term} key={term}>
               {term} meses
@@ -59,14 +71,14 @@ export function PaymentCalculator({
         </strong>
       </div>
       {agentHref ? (
-        <div className="calculator-cta">
+        <div style={{ marginTop: 18 }}>
           <PurchaseUrlCta href={agentHref} motorcycleId={motorcycleId} variant="green">
             Cotizar crédito con Finva
           </PurchaseUrlCta>
         </div>
       ) : (
         <p className="small muted calculator-cta-missing">
-          Enlace de compra no disponible para este modelo.
+          Sin agente de financiamiento asignado a este modelo todavía.
         </p>
       )}
     </div>

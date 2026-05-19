@@ -1,14 +1,22 @@
-import type { Metadata } from 'next';
-import Image from 'next/image';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { PaymentCalculator } from '@/components/PaymentCalculator';
-import { PrecioContado } from '@/components/PrecioContado';
-import { MotorcycleReviews } from '@/components/MotorcycleReviews';
-import { brandPath, cashPrice, formatMXN, getMotorcycleByPath, getMotorcycles, productPath } from '@/lib/catalog';
-import { getMotorcycleReviews } from '@/lib/motorcycle-reviews';
-import { buildProductJsonLd, absoluteAssetUrl } from '@/lib/product-jsonld';
-import { site } from '@/lib/site';
+import type { Metadata } from "next";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { PurchaseModule } from "@/components/PurchaseModule";
+import { PrecioContado } from "@/components/PrecioContado";
+import { MotorcycleReviews } from "@/components/MotorcycleReviews";
+import {
+  brandPath,
+  cashPrice,
+  formatMXN,
+  getMotorcycleByPath,
+  getMotorcycles,
+  productPath,
+} from "@/lib/catalog";
+import { getMotorcycleReviews } from "@/lib/motorcycle-reviews";
+import { getMaxInstallments, getMercadoPagoPublicKey } from "@/lib/mercadopago";
+import { buildProductJsonLd, absoluteAssetUrl } from "@/lib/product-jsonld";
+import { site } from "@/lib/site";
 
 export const revalidate = 120;
 
@@ -22,7 +30,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { brand, slug } = await params;
   const moto = await getMotorcycleByPath(brand, slug);
-  if (!moto) return { title: 'Moto no encontrada' };
+  if (!moto) return { title: "Moto no encontrada" };
   return {
     title: `${moto.brand} ${moto.model} ${moto.year} a crédito`,
     description: `Consulta precio, mensualidad estimada y opciones de compra para ${moto.brand} ${moto.model} ${moto.year}. Financiamiento gestionado por Finva.`,
@@ -30,9 +38,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${moto.brand} ${moto.model} ${moto.year}`,
       description: moto.shortDescription,
-      type: 'website',
+      type: "website",
       url: `${site.url}${productPath(moto)}`,
-      images: moto.imageUrl ? [{ url: absoluteAssetUrl(moto.imageUrl) }] : undefined,
+      images: moto.imageUrl
+        ? [{ url: absoluteAssetUrl(moto.imageUrl) }]
+        : undefined,
     },
   };
 }
@@ -49,14 +59,19 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <main className="product-hero">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="container product-grid">
         <div>
-          <Link href="/motos" className="small muted">← Volver al catálogo</Link>
+          <Link href="/motos" className="small muted">
+            ← Volver al catálogo
+          </Link>
           <div
             className={
-              'bike-visual' +
-              (hasPhoto ? ' bike-visual--photo bike-visual--photo-hero' : '')
+              "bike-visual" +
+              (hasPhoto ? " bike-visual--photo bike-visual--photo-hero" : "")
             }
             style={{ borderRadius: 32, height: 430, marginTop: 18 }}
           >
@@ -75,20 +90,39 @@ export default async function ProductPage({ params }: Props) {
           </div>
           <section className="section" style={{ paddingTop: 26 }}>
             <h2>¿Para quién es buena?</h2>
-            <div className="tags">{moto.bestFor.map((x) => <span className="tag" key={x}>{x}</span>)}</div>
+            <div className="tags">
+              {moto.bestFor.map((x) => (
+                <span className="tag" key={x}>
+                  {x}
+                </span>
+              ))}
+            </div>
             <p>{moto.shortDescription}</p>
             <h3>Ficha rápida</h3>
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              {Object.entries(moto.specs).map(([k, v]) => <div className="stat" key={k}><span className="small muted">{k}</span><strong>{v}</strong></div>)}
+            <div
+              className="grid"
+              style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+            >
+              {Object.entries(moto.specs).map(([k, v]) => (
+                <div className="stat" key={k}>
+                  <span className="small muted">{k}</span>
+                  <strong>{v}</strong>
+                </div>
+              ))}
             </div>
           </section>
         </div>
         <aside className="sticky-box">
           <span className="eyebrow">{moto.category}</span>
-          <h1>{moto.brand} {moto.model} {moto.year}</h1>
+          <h1>
+            {moto.brand} {moto.model} {moto.year}
+          </h1>
           <p>{moto.shortDescription}</p>
           <div className="stat-grid">
-            <div className="stat stat--precio"><span className="small muted">Precio</span><PrecioContado moto={moto} /></div>
+            <div className="stat stat--precio">
+              <span className="small muted">Precio</span>
+              <PrecioContado moto={moto} />
+            </div>
             <div className="stat">
               <span className="small muted">Desde</span>
               <strong>
@@ -96,15 +130,29 @@ export default async function ProductPage({ params }: Props) {
                 <span className="price-suffix">/mes</span>
               </strong>
             </div>
-            <div className="stat"><span className="small muted">Enganche sugerido</span><strong>{formatMXN(moto.suggestedDownPayment)}</strong></div>
+            <div className="stat">
+              <span className="small muted">Enganche sugerido</span>
+              <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
+            </div>
           </div>
-          <PaymentCalculator
+          <PurchaseModule
             price={cashPrice(moto)}
             suggestedDownPayment={moto.suggestedDownPayment}
-            motorcycleId={moto.id}
+            motorcycle={{
+              id: moto.id,
+              brand,
+              slug,
+              name: `${moto.brand} ${moto.model} ${moto.year}`.trim(),
+            }}
             purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
+            mercadoPagoPublicKey={getMercadoPagoPublicKey()}
+            mercadoPagoMaxInstallments={getMaxInstallments()}
           />
-          <p className="small muted">Envio incluido en CDMX y area metropolitana. En el resto del pais se recoge en agencia con posibilidad de envio, dependiendo de disponibilidad.</p>
+          <p className="small muted">
+            Envio incluido en CDMX y area metropolitana. En el resto del pais se
+            recoge en agencia con posibilidad de envio, dependiendo de
+            disponibilidad.
+          </p>
         </aside>
       </div>
       <MotorcycleReviews reviews={reviews} />
