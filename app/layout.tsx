@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Link from 'next/link';
 import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
+import { GoogleTag } from '@/components/GoogleTag';
+import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
 import { site } from '@/lib/site';
 
@@ -24,6 +26,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-MX">
       <body>
+        <GoogleTagManager />
+        <GoogleTag />
         <MetaPixel />
         <nav className="nav">
           <div className="container nav-inner">

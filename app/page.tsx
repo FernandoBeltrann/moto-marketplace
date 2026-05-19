@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
 import { HeroMotoRotator } from '@/components/HeroMotoRotator';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
-import { getMotorcycles } from '@/lib/catalog';
+import { getBrands, getMotorcycles } from '@/lib/catalog';
 
 export const revalidate = 120;
 
 export default async function HomePage() {
-  const all = await getMotorcycles();
+  const [all, brands] = await Promise.all([getMotorcycles(), getBrands()]);
   const featured = all.slice(0, 6);
   const heroSlides = all.filter((m) => m.imageUrl).slice(0, 8);
   return (
@@ -18,7 +18,7 @@ export default async function HomePage() {
             <span className="eyebrow">Motos nuevas + financiamiento powered by Finva</span>
             <h1>Encuentra tu moto y calcula cuánto pagarías al mes.</h1>
             <p>Explora motos por presupuesto, uso y marca. Inicia tu compra en minutos con opciones de financiamiento gestionadas por Finva.</p>
-            <SearchBox />
+            <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
             <HeroMotoRotator slides={heroSlides} />

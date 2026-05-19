@@ -18,9 +18,7 @@ fbq('track','PageView');
 
   return (
     <>
-      <Script id="meta-pixel" strategy="afterInteractive">
-        {bootstrap}
-      </Script>
+      <Script id="meta-pixel" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: bootstrap }} />
       <noscript>
         <img
           height={1}

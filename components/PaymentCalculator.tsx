@@ -3,19 +3,23 @@
 import { useMemo, useState } from 'react';
 import { estimateMonthlyPayment, TERMS } from '@/lib/finance';
 import { formatMXN } from '@/lib/catalog-format';
+import { trackCalculatorInteraction } from '@/lib/gtm';
 import { track } from '@/lib/analytics';
 import { PurchaseUrlCta } from '@/components/PurchaseUrlCta';
 import { normalizeOutboundUrl } from '@/lib/purchase-url';
+import type { Motorcycle } from '@/types/motorcycle';
 
 export function PaymentCalculator({
   price,
   suggestedDownPayment,
   motorcycleId,
+  motorcycle,
   purchaseUrl,
 }: {
   price: number;
   suggestedDownPayment: number;
   motorcycleId: string;
+  motorcycle?: Pick<Motorcycle, 'slug' | 'brand' | 'model' | 'year' | 'price'>;
   purchaseUrl?: string | null;
 }) {
   const [downPayment, setDownPayment] = useState(suggestedDownPayment);
@@ -25,6 +29,16 @@ export function PaymentCalculator({
     [price, downPayment, months]
   );
   const agentHref = normalizeOutboundUrl(purchaseUrl);
+
+  function pushCalculatorGTM(nextDown: number, nextMonths: number) {
+    if (!motorcycle) return;
+    trackCalculatorInteraction({
+      motorcycle,
+      downPayment: nextDown,
+      termMonths: nextMonths,
+      estimatedMonthlyPayment: estimateMonthlyPayment(price, nextDown, nextMonths),
+    });
+  }
 
   return (
     <div className="calculator calculator--flush">
@@ -44,8 +58,10 @@ export function PaymentCalculator({
           step={1000}
           value={downPayment}
           onChange={(e) => {
-            setDownPayment(Number(e.target.value));
+            const nextDown = Number(e.target.value);
+            setDownPayment(nextDown);
             track('use_calculator', { motorcycleId });
+            pushCalculatorGTM(nextDown, months);
           }}
         />
       </div>
@@ -54,7 +70,12 @@ export function PaymentCalculator({
         <select
           className="select"
           value={months}
-          onChange={(e) => setMonths(Number(e.target.value))}
+          onChange={(e) => {
+            const nextMonths = Number(e.target.value);
+            setMonths(nextMonths);
+            track('use_calculator', { motorcycleId });
+            pushCalculatorGTM(downPayment, nextMonths);
+          }}
         >
           {TERMS.map((term) => (
             <option value={term} key={term}>

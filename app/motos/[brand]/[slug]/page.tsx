@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { MotorcycleViewTracker } from "@/components/MotorcycleViewTracker";
 import { PurchaseModule } from "@/components/PurchaseModule";
 import { PrecioContado } from "@/components/PrecioContado";
 import { MotorcycleReviews } from "@/components/MotorcycleReviews";
@@ -59,6 +60,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <main className="product-hero">
+      <MotorcycleViewTracker motorcycle={moto} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
