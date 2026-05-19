@@ -8,6 +8,7 @@ import { track } from '@/lib/analytics';
 import { PurchaseUrlCta } from '@/components/PurchaseUrlCta';
 import { normalizeOutboundUrl } from '@/lib/purchase-url';
 import type { Motorcycle } from '@/types/motorcycle';
+import type { QuoteContext } from '@/types/credit-application';
 
 export function PaymentCalculator({
   price,
@@ -15,12 +16,14 @@ export function PaymentCalculator({
   motorcycleId,
   motorcycle,
   purchaseUrl,
+  onStartApplication,
 }: {
   price: number;
   suggestedDownPayment: number;
   motorcycleId: string;
   motorcycle?: Pick<Motorcycle, 'slug' | 'brand' | 'model' | 'year' | 'price'>;
   purchaseUrl?: string | null;
+  onStartApplication?: (quote: QuoteContext) => void;
 }) {
   const [downPayment, setDownPayment] = useState(suggestedDownPayment);
   const [months, setMonths] = useState(24);
@@ -91,8 +94,21 @@ export function PaymentCalculator({
           <span className="price-suffix">/mes</span>
         </strong>
       </div>
-      {agentHref ? (
-        <div style={{ marginTop: 18 }}>
+      {onStartApplication ? (
+        <div className="calculator-cta">
+          <button
+            type="button"
+            className="btn green full"
+            onClick={() => {
+              track('start_financing', { motorcycleId });
+              onStartApplication({ price, downPayment, months, monthly });
+            }}
+          >
+            Cotizar crédito con Finva
+          </button>
+        </div>
+      ) : agentHref ? (
+        <div className="calculator-cta">
           <PurchaseUrlCta href={agentHref} motorcycleId={motorcycleId} variant="green">
             Cotizar crédito con Finva
           </PurchaseUrlCta>

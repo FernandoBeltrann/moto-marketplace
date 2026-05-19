@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PaymentCalculator } from '@/components/PaymentCalculator';
+import { CreditApplicationShell } from '@/components/credit-application/CreditApplicationShell';
 import { MercadoPagoCheckout } from '@/components/MercadoPagoCheckout';
 import { track } from '@/lib/analytics';
 
@@ -84,10 +84,11 @@ export function PurchaseModule({
         aria-labelledby="tab-financing"
         hidden={tab !== 'financing'}
       >
-        <PaymentCalculator
+        <CreditApplicationShell
           price={price}
           suggestedDownPayment={suggestedDownPayment}
           motorcycleId={motorcycle.id}
+          motorcycleName={motorcycle.name}
           purchaseUrl={purchaseUrl}
         />
       </div>

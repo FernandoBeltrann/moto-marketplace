@@ -18,7 +18,7 @@ export default async function CatalogPage() {
         <span className="eyebrow">Catálogo</span>
         <h1>Motos nuevas disponibles</h1>
         <p>Filtra por marca, precio o uso.</p>
-        <Suspense>
+        <Suspense fallback={<p className="small muted">Cargando catálogo…</p>}>
           <CatalogClient motos={motos} />
         </Suspense>
       </div>
