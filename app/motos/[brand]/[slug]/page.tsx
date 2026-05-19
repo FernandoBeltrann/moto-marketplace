@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { MotorcycleViewTracker } from '@/components/MotorcycleViewTracker';
 import { PaymentCalculator } from '@/components/PaymentCalculator';
 import { PrecioContado } from '@/components/PrecioContado';
 import { MotorcycleReviews } from '@/components/MotorcycleReviews';
@@ -49,6 +50,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <main className="product-hero">
+      <MotorcycleViewTracker motorcycle={moto} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="container product-grid">
         <div>
@@ -102,6 +104,7 @@ export default async function ProductPage({ params }: Props) {
             price={cashPrice(moto)}
             suggestedDownPayment={moto.suggestedDownPayment}
             motorcycleId={moto.id}
+            motorcycle={moto}
             purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
           />
           <p className="small muted">Envio incluido en CDMX y area metropolitana. En el resto del pais se recoge en agencia con posibilidad de envio, dependiendo de disponibilidad.</p>

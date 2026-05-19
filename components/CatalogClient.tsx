@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { cashPrice } from '@/lib/catalog-format';
 import type { Motorcycle } from '@/types/motorcycle';
 import { MotorcycleCard } from './MotorcycleCard';
+import { trackCatalogFilter } from '@/lib/gtm';
 import { track } from '@/lib/analytics';
 
 export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
@@ -45,7 +46,10 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
           value={brand}
           onChange={(e) => {
             setBrand(e.target.value);
-            if (e.target.value) track('filter_catalog', { filter: 'brand', value: e.target.value });
+            if (e.target.value) {
+              trackCatalogFilter('brand', e.target.value);
+              track('filter_catalog', { filter: 'brand', value: e.target.value });
+            }
           }}
         >
           <option value="">Todas las marcas</option>
@@ -60,7 +64,10 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
           value={category}
           onChange={(e) => {
             setCategory(e.target.value);
-            if (e.target.value) track('filter_catalog', { filter: 'category', value: e.target.value });
+            if (e.target.value) {
+              trackCatalogFilter('category', e.target.value);
+              track('filter_catalog', { filter: 'category', value: e.target.value });
+            }
           }}
         >
           <option value="">Todos los usos</option>
@@ -75,7 +82,10 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
           value={maxPrice}
           onChange={(e) => {
             setMaxPrice(e.target.value);
-            if (e.target.value) track('filter_catalog', { filter: 'maxPrice', value: e.target.value });
+            if (e.target.value) {
+              trackCatalogFilter('maxPrice', Number(e.target.value));
+              track('filter_catalog', { filter: 'maxPrice', value: e.target.value });
+            }
           }}
         >
           <option value="">Precio máximo</option>
