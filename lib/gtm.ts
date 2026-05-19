@@ -31,16 +31,18 @@ export function trackCalculatorInteraction({
   termMonths,
   estimatedMonthlyPayment,
 }: {
-  motorcycle: Pick<Motorcycle, 'slug' | 'brand' | 'model' | 'price' | 'promoPrice'>;
+  motorcycle: Pick<Motorcycle, 'slug' | 'brand' | 'model' | 'year' | 'price'>;
   downPayment: number;
   termMonths: number;
   estimatedMonthlyPayment: number;
 }) {
+  const name = `${motorcycle.brand} ${motorcycle.model} ${motorcycle.year}`;
+
   pushGTMEvent('calculator_interaction', {
     motorcycle_id: motorcycle.slug,
-    motorcycle_name: `${motorcycle.brand} ${motorcycle.model}`,
+    motorcycle_name: name,
     brand: motorcycle.brand,
-    price: cashPrice(motorcycle),
+    price: motorcycle.price,
     down_payment: downPayment,
     term_months: termMonths,
     estimated_monthly_payment: estimatedMonthlyPayment,

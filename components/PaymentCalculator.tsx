@@ -19,7 +19,7 @@ export function PaymentCalculator({
   price: number;
   suggestedDownPayment: number;
   motorcycleId: string;
-  motorcycle?: Pick<Motorcycle, 'slug' | 'brand' | 'model' | 'price' | 'promoPrice'>;
+  motorcycle?: Pick<Motorcycle, 'slug' | 'brand' | 'model' | 'year' | 'price'>;
   purchaseUrl?: string | null;
 }) {
   const [downPayment, setDownPayment] = useState(suggestedDownPayment);
@@ -50,11 +50,11 @@ export function PaymentCalculator({
           step={1000}
           value={downPayment}
           onChange={(e) => {
-            setDownPayment(Number(e.target.value));
+            const nextDown = Number(e.target.value);
+            setDownPayment(nextDown);
             track('use_calculator', { motorcycleId });
+            pushCalculatorGTM(nextDown, months);
           }}
-          onMouseUp={(e) => pushCalculatorGTM(Number(e.currentTarget.value), months)}
-          onTouchEnd={(e) => pushCalculatorGTM(Number(e.currentTarget.value), months)}
         />
       </div>
       <div className="range-row">
