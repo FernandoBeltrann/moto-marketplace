@@ -95,7 +95,7 @@ export function PaymentCalculator({
         </strong>
       </div>
       {onStartApplication ? (
-        <div className="calculator-cta">
+        <div style={{ marginTop: '18px' }}>
           <button
             type="button"
             className="btn green full"

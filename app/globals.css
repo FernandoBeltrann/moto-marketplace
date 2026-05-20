@@ -500,6 +500,88 @@ p { color: var(--muted); line-height: 1.6; }
 
 .purchase-card-panel { padding-top: 4px; }
 
+/* Resumen (precio / desde / enganche) dentro del tab de financiamiento. */
+.purchase-financing-summary { margin-bottom: 16px; }
+.purchase-financing-summary .stat-grid { margin: 0; }
+
+/* ── Card payment intro (resumen antes de abrir el brick MP) ─────────────── */
+.card-intro {
+  display: grid;
+  gap: 14px;
+}
+.card-intro__price {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.card-intro__price strong {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  color: var(--text);
+}
+.card-intro__price-note {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.card-intro__lead {
+  margin: 2px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.card-intro__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.card-intro__list li {
+  position: relative;
+  padding: 10px 12px 10px 34px;
+  border-radius: 14px;
+  background: white;
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.card-intro__list li::before {
+  content: "✓";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.card-pay { display: grid; gap: 12px; }
+.card-pay__back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  justify-self: start;
+}
+.card-pay__back:hover { color: var(--text); }
+
 /* ── Buyer form (datos del comprador antes del Brick) ────────────────────── */
 .buyer-form {
   display: grid;

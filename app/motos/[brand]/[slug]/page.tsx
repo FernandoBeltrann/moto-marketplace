@@ -120,35 +120,41 @@ export default async function ProductPage({ params }: Props) {
             {moto.brand} {moto.model} {moto.year}
           </h1>
           <p>{moto.shortDescription}</p>
-          <div className="stat-grid">
-            <div className="stat stat--precio">
-              <span className="small muted">Precio</span>
-              <PrecioContado moto={moto} />
-            </div>
-            <div className="stat">
-              <span className="small muted">Desde</span>
-              <strong>
-                {formatMXN(moto.monthlyFrom)}
-                <span className="price-suffix">/mes</span>
-              </strong>
-            </div>
-            <div className="stat">
-              <span className="small muted">Enganche sugerido</span>
-              <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
-            </div>
-          </div>
           <PurchaseModule
             price={cashPrice(moto)}
+            cardPrice={moto.cardPrice ?? null}
             suggestedDownPayment={moto.suggestedDownPayment}
             motorcycle={{
               id: moto.id,
-              brand,
+              brand: moto.brand,
+              model: moto.model,
+              year: moto.year,
               slug,
               name: `${moto.brand} ${moto.model} ${moto.year}`.trim(),
+              finvaMotorcycleId: moto.finvaMotorcycleId ?? null,
             }}
             purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
             mercadoPagoPublicKey={getMercadoPagoPublicKey()}
             mercadoPagoMaxInstallments={getMaxInstallments()}
+            financingSummary={
+              <div className="stat-grid">
+                <div className="stat stat--precio">
+                  <span className="small muted">Precio</span>
+                  <PrecioContado moto={moto} />
+                </div>
+                <div className="stat">
+                  <span className="small muted">Desde</span>
+                  <strong>
+                    {formatMXN(moto.monthlyFrom)}
+                    <span className="price-suffix">/mes</span>
+                  </strong>
+                </div>
+                <div className="stat">
+                  <span className="small muted">Enganche sugerido</span>
+                  <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
+                </div>
+              </div>
+            }
           />
           <p className="small muted">
             Envio incluido en CDMX y area metropolitana. En el resto del pais se
