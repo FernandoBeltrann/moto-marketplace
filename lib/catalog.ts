@@ -4,7 +4,15 @@ import { brandPath } from '@/lib/catalog-format';
 import type { Motorcycle } from '@/types/motorcycle';
 
 export type { Motorcycle } from '@/types/motorcycle';
-export { formatMXN, brandPath, productPath, cashPrice, listPriceIfPromo, promoPercentSaved } from '@/lib/catalog-format';
+export {
+  formatMXN,
+  brandPath,
+  productPath,
+  cashPrice,
+  cardChargedPrice,
+  listPriceIfPromo,
+  promoPercentSaved,
+} from '@/lib/catalog-format';
 
 function motorcyclesTable() {
   return process.env.SUPABASE_MOTORCYCLES_TABLE || 'motorcycles';
@@ -71,6 +79,20 @@ export function mapMotorcycleRow(row: Record<string, unknown>): Motorcycle {
     galleryUrls: asStringArray(row.gallery_urls),
     purchaseUrl:
       row.purchase_url == null || row.purchase_url === '' ? null : asString(row.purchase_url),
+    cardPrice:
+      row.card_price == null || row.card_price === ''
+        ? null
+        : (() => {
+            const n = asNumber(row.card_price);
+            return n > 0 ? n : null;
+          })(),
+    finvaMotorcycleId:
+      row.finva_motorcycle_id == null || row.finva_motorcycle_id === ''
+        ? null
+        : (() => {
+            const n = asNumber(row.finva_motorcycle_id);
+            return Number.isFinite(n) && n > 0 ? n : null;
+          })(),
   };
 }
 

@@ -23,4 +23,11 @@ export type Motorcycle = {
   galleryUrls?: string[];
   /** URL externa (ej. Finva / CRM) para el CTA «Iniciar compra con un agente». */
   purchaseUrl?: string | null;
+  /**
+   * Precio cobrado al pagar con tarjeta (cashPrice + comisión Mercado Pago).
+   * `null`/`undefined` → fallback a `cashPrice`.
+   */
+  cardPrice?: number | null;
+  /** ID numérico de la moto en la base de datos de Finva (para `id_motorcycle`). */
+  finvaMotorcycleId?: number | null;
 };

@@ -11,6 +11,17 @@ export function cashPrice(m: Pick<Motorcycle, 'price' | 'promoPrice'>): number {
   return m.price;
 }
 
+/**
+ * Monto que se cobra cuando el pago es con tarjeta (incluye comisión MP).
+ * Si `cardPrice` no está cargado en la base, hace fallback a `cashPrice`.
+ */
+export function cardChargedPrice(
+  m: Pick<Motorcycle, 'price' | 'promoPrice' | 'cardPrice'>
+): number {
+  if (m.cardPrice != null && m.cardPrice > 0) return m.cardPrice;
+  return cashPrice(m);
+}
+
 /** Precio de lista a tachar cuando hay promo válida; si no, `null`. */
 export function listPriceIfPromo(m: Pick<Motorcycle, 'price' | 'promoPrice'>): number | null {
   const p = m.promoPrice;
