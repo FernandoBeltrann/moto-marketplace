@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MercadoPagoStatusScreen } from '@/components/MercadoPagoStatusScreen';
+import { cardChargedPrice, getMotorcycleByPath } from '@/lib/catalog';
 import { getMercadoPagoPublicKey } from '@/lib/mercadopago';
 import { site } from '@/lib/site';
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 type SearchParams = {
   payment_id?: string;
   status?: string;
+  motorcycle_id?: string;
   motorcycle_brand?: string;
   motorcycle_slug?: string;
 };
@@ -55,6 +57,19 @@ export default async function ResultPage({ searchParams }: Props) {
   const publicKey = getMercadoPagoPublicKey();
   const copy = STATUS_COPY[status] ?? STATUS_COPY.rejected;
 
+  // Recuperar el monto cobrado para enviarlo como `value` de Google Ads cuando
+  // status === 'approved'. La conversión se dispara client-side desde el
+  // StatusScreen (idempotente por paymentId).
+  let conversionValue: number | undefined;
+  let motorcycleId: string | undefined;
+  if (params.motorcycle_brand && params.motorcycle_slug) {
+    const moto = await getMotorcycleByPath(params.motorcycle_brand, params.motorcycle_slug);
+    if (moto) {
+      conversionValue = cardChargedPrice(moto);
+      motorcycleId = moto.id;
+    }
+  }
+
   return (
     <main className="product-hero">
       <div className="container" style={{ paddingTop: 30 }}>
@@ -75,6 +90,9 @@ export default async function ResultPage({ searchParams }: Props) {
               paymentId={paymentId}
               publicKey={publicKey}
               returnUrl={`${site.url}${back}`}
+              status={status}
+              conversionValue={conversionValue}
+              motorcycleId={motorcycleId}
             />
           </div>
         ) : null}

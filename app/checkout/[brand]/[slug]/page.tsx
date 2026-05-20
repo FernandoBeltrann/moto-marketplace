@@ -3,7 +3,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MercadoPagoCheckout } from '@/components/MercadoPagoCheckout';
-import { cashPrice, formatMXN, getMotorcycleByPath, productPath } from '@/lib/catalog';
+import {
+  cardChargedPrice,
+  cashPrice,
+  formatMXN,
+  getMotorcycleByPath,
+  productPath,
+} from '@/lib/catalog';
 import { getMaxInstallments, getMercadoPagoPublicKey } from '@/lib/mercadopago';
 import { site } from '@/lib/site';
 
@@ -28,7 +34,9 @@ export default async function CheckoutPage({ params }: Props) {
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) notFound();
 
-  const amount = cashPrice(moto);
+  const cash = cashPrice(moto);
+  const amount = cardChargedPrice(moto);
+  const commission = Math.max(0, amount - cash);
   const publicKey = getMercadoPagoPublicKey();
   const maxInstallments = getMaxInstallments();
 
@@ -68,9 +76,16 @@ export default async function CheckoutPage({ params }: Props) {
             <div className="checkout-total">
               <span className="small muted">Total a pagar</span>
               <strong className="checkout-total__amount">{formatMXN(amount)}</strong>
-              <span className="checkout-total__note">
-                Débito en 1 pago · Crédito hasta {maxInstallments} meses (con intereses del banco)
-              </span>
+              {commission > 0 ? (
+                <span className="checkout-total__note">
+                  Precio de la moto {formatMXN(cash)} + comisión bancaria {formatMXN(commission)}.
+                  Débito en 1 pago · Crédito hasta {maxInstallments} meses (con intereses del banco)
+                </span>
+              ) : (
+                <span className="checkout-total__note">
+                  Débito en 1 pago · Crédito hasta {maxInstallments} meses (con intereses del banco)
+                </span>
+              )}
             </div>
             <ul className="checkout-trust" aria-label="Garantías del pago">
               <li>Pago seguro procesado por Mercado Pago</li>

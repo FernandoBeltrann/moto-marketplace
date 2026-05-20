@@ -6,7 +6,7 @@
  * Reglas de negocio (replicadas en el servidor para no confiar en el cliente):
  *  - Débito (`debit_card`)  → `installments = 1`.
  *  - Crédito (`credit_card`) → `1 <= installments <= MAX_INSTALLMENTS` (default 24).
- *  - Monto cobrado === precio publicado de la moto.
+ *  - Monto cobrado === `cardChargedPrice(moto)` (precio + comisión MP, fallback a precio).
  *  - Comprador (nombre/email/teléfono) obligatorio.
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,7 +16,7 @@ import {
   getPaymentResource,
   getStatementDescriptor,
 } from '@/lib/mercadopago';
-import { cashPrice, getMotorcycleByPath } from '@/lib/catalog';
+import { cardChargedPrice, getMotorcycleByPath } from '@/lib/catalog';
 import { site } from '@/lib/site';
 import { notifyApprovedPaymentOnce, upsertPaymentRow } from '@/lib/payments';
 
@@ -96,7 +96,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'motorcycle_not_found' }, { status: 404 });
   }
 
-  const expectedAmount = cashPrice(moto);
+  // El monto cobrado en tarjeta usa `card_price` (precio + comisión MP). Si la
+  // columna está vacía hace fallback a `cashPrice`.
+  const expectedAmount = cardChargedPrice(moto);
   const clientAmount = Number(formData.transaction_amount);
   if (!Number.isFinite(clientAmount) || Math.round(clientAmount) !== Math.round(expectedAmount)) {
     return NextResponse.json(
