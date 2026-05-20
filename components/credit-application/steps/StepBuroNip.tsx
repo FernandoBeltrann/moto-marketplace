@@ -4,33 +4,58 @@ import { useEffect, useState } from 'react';
 import { requestBuroNip, verifyBuroNip } from '@/lib/credit-application/api';
 import { formatMxPhoneDisplay } from '@/lib/credit-application/phone';
 import { isValidNip } from '@/lib/credit-application/validation';
+import type {
+  AddressData,
+  ContactData,
+  CreditApplicationServerState,
+  IdentityData,
+} from '@/types/credit-application';
+import { track } from '@/lib/analytics';
 import { BuroAuthorizationNotice } from '../buro/BuroAuthorizationNotice';
 import { BuroNipDigits } from '../buro/BuroNipDigits';
 import { BuroTermsConsent } from '../buro/BuroTermsConsent';
 
 export type BuroPhase = 'enter' | 'authorize';
 
+const MAX_RETRIES_BEFORE_PHONE_HINT = 2;
+
 export function StepBuroNip({
-  applicationId,
+  serverState,
+  motorcycleId,
+  contact,
+  identity,
+  address,
   phone,
   phase,
   onPhaseChange,
   onBusyChange,
+  onServerStateChange,
   onVerified,
+  onChangePhone,
 }: {
-  applicationId: string;
+  serverState: CreditApplicationServerState;
+  motorcycleId: string;
+  contact: ContactData;
+  identity: IdentityData;
+  address: AddressData;
   phone?: string;
   phase: BuroPhase;
   onPhaseChange: (phase: BuroPhase) => void;
   onBusyChange?: (busy: boolean) => void;
-  onVerified: () => void | Promise<void>;
+  onServerStateChange: (next: CreditApplicationServerState) => void;
+  onVerified: (verifyResult: { reportId?: number }) => void | Promise<void>;
+  onChangePhone: () => void;
 }) {
   const [nip, setNip] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'requesting' | 'ready' | 'verifying' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'requesting' | 'ready' | 'verifying' | 'error'>(
+    'idle'
+  );
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [resendIn, setResendIn] = useState(0);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [emailFallback, setEmailFallback] = useState(false);
 
   const phoneLabel = phone ? formatMxPhoneDisplay(phone) : null;
   const busy = status === 'requesting' || status === 'verifying';
@@ -40,19 +65,38 @@ export function StepBuroNip({
   }, [busy, onBusyChange]);
 
   useEffect(() => {
+    // Si el cliente ya tiene un `reportId` (BC consultado previamente —
+    // incluyendo el caso "rehidrato desde localStorage en step 5 porque el
+    // submit anterior falló por otra razón"), nunca abrimos un nuevo workfloo:
+    // Finva nos responderá `the workfloo had already finished` y el usuario
+    // queda atorado. Saltamos directo a `onVerified` para que el wizard intente
+    // crear la solicitud con el reporte existente.
+    if (serverState.reportId) {
+      setStatus('verifying');
+      setMessage('Tu Buró ya fue consultado. Registrando tu solicitud…');
+      void onVerified({ reportId: serverState.reportId });
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       setStatus('requesting');
       try {
-        const res = await requestBuroNip(applicationId);
+        const res = await requestBuroNip(serverState, { contact, identity, address });
         if (!cancelled) {
           setMessage(res.message ?? 'Hemos enviado un código de 6 dígitos a tu WhatsApp.');
+          if (res.serverState) onServerStateChange(res.serverState);
+          if (res.nipType === 'email') setEmailFallback(true);
           setStatus('ready');
           setResendIn(30);
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setError('No pudimos solicitar el NIP. Intenta de nuevo.');
+          setError(
+            err instanceof Error && err.message
+              ? err.message
+              : 'No pudimos solicitar el NIP. Intenta de nuevo.'
+          );
           setStatus('error');
         }
       }
@@ -60,7 +104,8 @@ export function StepBuroNip({
     return () => {
       cancelled = true;
     };
-  }, [applicationId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverState.applicationId, serverState.reportId]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -73,12 +118,18 @@ export function StepBuroNip({
     setError('');
     setStatus('requesting');
     try {
-      const res = await requestBuroNip(applicationId);
+      const res = await requestBuroNip(serverState, { contact, identity, address });
+      if (res.serverState) onServerStateChange(res.serverState);
+      if (res.nipType === 'email') setEmailFallback(true);
       setMessage(res.message ?? 'Hemos enviado un código de 6 dígitos a tu WhatsApp.');
       setStatus('ready');
       setResendIn(30);
-    } catch {
-      setError('No pudimos reenviar el NIP. Intenta de nuevo.');
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'No pudimos reenviar el NIP. Intenta de nuevo.'
+      );
       setStatus('error');
     }
   }
@@ -106,13 +157,23 @@ export function StepBuroNip({
     if (!validateCommon()) return;
     setStatus('verifying');
     try {
-      await verifyBuroNip(applicationId, nip);
-      await onVerified();
+      const res = await verifyBuroNip(serverState, nip);
+      if (res.serverState) onServerStateChange(res.serverState);
+      track('credit_app_buro_ok', { motorcycleId, reportId: res.reportId });
+      await onVerified({ reportId: res.reportId });
     } catch {
+      setFailedAttempts((n) => n + 1);
       setError('NIP incorrecto o expirado. Verifica e intenta de nuevo.');
       setStatus('ready');
     }
   }
+
+  function handleChangePhoneClick() {
+    track('credit_app_phone_change', { motorcycleId, attempts: failedAttempts });
+    onChangePhone();
+  }
+
+  const showPhoneHint = failedAttempts >= MAX_RETRIES_BEFORE_PHONE_HINT || emailFallback;
 
   const consentBlock = (
     <>
@@ -136,7 +197,12 @@ export function StepBuroNip({
                   strokeWidth="1.6"
                   fill="none"
                 />
-                <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path
+                  d="M9 12l2 2 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
               </svg>
             </span>
             <h4 className="buro-step__title">Ingresa tu código NIP</h4>
@@ -163,11 +229,34 @@ export function StepBuroNip({
                 Reenviar en <strong>{resendIn}s</strong>
               </>
             ) : (
-              <button type="button" className="buro-step__resend-btn" onClick={handleResend} disabled={busy}>
+              <button
+                type="button"
+                className="buro-step__resend-btn"
+                onClick={handleResend}
+                disabled={busy}
+              >
                 Reenviar código
               </button>
             )}
           </p>
+
+          {showPhoneHint ? (
+            <div className="buro-notice">
+              <p className="buro-notice__text small">
+                {emailFallback
+                  ? 'No pudimos enviarte el NIP por WhatsApp. Verifica que el número sea correcto.'
+                  : '¿No recibiste el código? Verifica que tu número de WhatsApp esté correcto.'}{' '}
+                <button
+                  type="button"
+                  className="buro-step__resend-btn"
+                  onClick={handleChangePhoneClick}
+                  disabled={busy}
+                >
+                  Cambiar correo o teléfono
+                </button>
+              </p>
+            </div>
+          ) : null}
         </>
       ) : (
         <>
@@ -179,7 +268,11 @@ export function StepBuroNip({
 
           <p className="small muted buro-step__nip-label">Autorizar (con el mismo NIP verificado)</p>
           <BuroNipDigits value={nip} onChange={setNip} disabled={busy} masked />
-          <button type="button" className="buro-step__change small" onClick={() => onPhaseChange('enter')}>
+          <button
+            type="button"
+            className="buro-step__change small"
+            onClick={() => onPhaseChange('enter')}
+          >
             Cambiar código
           </button>
         </>

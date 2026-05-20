@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { IdentityData } from '@/types/credit-application';
 import { lookupCurp } from '@/lib/credit-application/api';
 import { isValidCurp } from '@/lib/credit-application/validation';
@@ -8,17 +8,39 @@ import { WizardField } from '../WizardField';
 
 export function StepIdentification({
   initial,
+  onChange,
   onNeighborhoods,
   onSubmit,
 }: {
-  initial?: IdentityData;
+  initial?: Partial<IdentityData>;
+  /** Notifica al wizard de cada cambio para persistir live en sessionStorage. */
+  onChange?: (partial: Partial<IdentityData>) => void;
   onNeighborhoods?: (neighborhoods: string[]) => void;
   onSubmit: (data: IdentityData) => void | Promise<void>;
 }) {
   const [curp, setCurp] = useState(initial?.curp ?? '');
-  const [identity, setIdentity] = useState<IdentityData | null>(initial ?? null);
+  const [identity, setIdentity] = useState<IdentityData | null>(
+    initial?.firstName || initial?.lastName ? (initial as IdentityData) : null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Persistencia en vivo
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    onChangeRef.current?.({
+      curp,
+      firstName: identity?.firstName ?? '',
+      middleName: identity?.middleName ?? '',
+      lastName: identity?.lastName ?? '',
+      secondLastName: identity?.secondLastName ?? '',
+      birthDate: identity?.birthDate ?? '',
+      rfc: identity?.rfc,
+    });
+  }, [curp, identity]);
 
   async function consultar() {
     setError('');
@@ -36,6 +58,10 @@ export function StepIdentification({
         lastName: data.lastName,
         secondLastName: data.secondLastName ?? '',
         birthDate: data.birthDate,
+        // CRÍTICO: persistimos el RFC (sea retornado por validate-curp o
+        // generado por generate_rfc en el server). Sin esto el cliente queda
+        // sin RFC en Finva y `/send_nip_kiban` lo rechaza por `rfc_pf` vacío.
+        rfc: data.rfc,
       });
       if (data.neighborhoods?.length) onNeighborhoods?.(data.neighborhoods);
     } catch {

@@ -11,12 +11,20 @@ export function CreditApplicationShell({
   suggestedDownPayment,
   motorcycleId,
   motorcycleName,
+  motorcycleBrand,
+  motorcycleModel,
+  motorcycleYear,
+  finvaMotorcycleId,
   purchaseUrl,
 }: {
   price: number;
   suggestedDownPayment: number;
   motorcycleId: string;
   motorcycleName: string;
+  motorcycleBrand: string;
+  motorcycleModel: string;
+  motorcycleYear: number;
+  finvaMotorcycleId: number | null;
   purchaseUrl?: string | null;
 }) {
   const [mode, setMode] = useState<'calculator' | 'wizard'>('calculator');
@@ -27,6 +35,11 @@ export function CreditApplicationShell({
       <CreditApplicationWizard
         motorcycleId={motorcycleId}
         motorcycleName={motorcycleName}
+        motorcycleBrand={motorcycleBrand}
+        motorcycleModel={motorcycleModel}
+        motorcycleYear={motorcycleYear}
+        motorcyclePrice={price}
+        finvaMotorcycleId={finvaMotorcycleId}
         quote={quote}
         onCancel={() => setMode('calculator')}
       />
