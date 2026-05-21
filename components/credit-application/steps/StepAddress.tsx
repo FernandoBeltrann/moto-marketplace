@@ -16,6 +16,7 @@ export function StepAddress({
   initial,
   neighborhoodOptions,
   onChange,
+  onLookupChange,
   onSubmit,
 }: {
   initial?: Partial<AddressData>;
@@ -23,6 +24,12 @@ export function StepAddress({
   neighborhoodOptions?: string[];
   /** Notifica al wizard de cada cambio para persistir live en sessionStorage. */
   onChange?: (partial: Partial<AddressData>) => void;
+  /**
+   * Notifica al wizard cuando hay un lookup de CP en vuelo, para que muestre
+   * el overlay global (fondo gris + spinner) y bloquee otros clics mientras
+   * el backend resuelve la consulta de colonia/ciudad.
+   */
+  onLookupChange?: (busy: boolean) => void;
   onSubmit: (data: AddressData) => void | Promise<void>;
 }) {
   const [street, setStreet] = useState(initial?.street ?? '');
@@ -127,6 +134,22 @@ export function StepAddress({
   const hasColoniaSelect =
     lookup.status === 'ok' && lookup.neighborhoods.length > 0;
   const isLookingUp = lookup.status === 'loading';
+
+  // Propagamos el estado de lookup al wizard para que renderice el overlay
+  // global (fondo gris + spinner) mientras el backend valida el CP. Lo hacemos
+  // vía ref para que cambiar la identidad del callback no dispare el effect.
+  const onLookupChangeRef = useRef(onLookupChange);
+  useEffect(() => {
+    onLookupChangeRef.current = onLookupChange;
+  }, [onLookupChange]);
+  useEffect(() => {
+    onLookupChangeRef.current?.(isLookingUp);
+  }, [isLookingUp]);
+  useEffect(() => {
+    return () => {
+      onLookupChangeRef.current?.(false);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

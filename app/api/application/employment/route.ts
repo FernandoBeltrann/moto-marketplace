@@ -41,7 +41,28 @@ export async function POST(req: NextRequest) {
   }
 
   if (isFinvaConfigured() && body.serverState.clienteId) {
-    await updateCliente(body.serverState.clienteId, {
+    // CRÍTICO: user_id y finva_user_id DEBEN viajar en cada PUT /cliente para
+    // mantener la vinculación con la sucursal/asesor de Motoclick. Si por
+    // alguna razón se perdieron del serverState (sesión corrupta, navegación
+    // rara entre pestañas) abortamos en vez de "actualizar" silenciosamente
+    // un cliente sin asesor — luego /add_solicitud lo rebota.
+    const { userId, finvaUserId, clienteId } = body.serverState;
+    if (!finvaUserId) {
+      return stubError(
+        'Falta finva_user_id en la sesión. Vuelve al paso de domicilio para reasignar asesor.',
+        409,
+        { label: 'employment ensure_ids', details: { userId, finvaUserId, clienteId } }
+      );
+    }
+    if (!userId) {
+      return stubError(
+        'Falta user_id en la sesión. Vuelve al paso de domicilio para reasignar asesor.',
+        409,
+        { label: 'employment ensure_ids', details: { userId, finvaUserId, clienteId } }
+      );
+    }
+
+    const upd = await updateCliente(clienteId, {
       profesion: e.role,
       time_living_there: undefined,
       income_source_type: [e.incomeSourceType],
@@ -49,7 +70,16 @@ export async function POST(req: NextRequest) {
       monthly_income: e.monthlyIncome,
       client_credit_history_description: e.creditHistory,
       possible_guarantor: e.possibleGuarantor,
+      user_id: userId,
+      finva_user_id: finvaUserId,
     });
+    if (!upd.ok) {
+      return stubError(
+        upd.error || 'No pudimos guardar tu información laboral en Finva',
+        upd.status || 502,
+        { label: 'employment update_cliente', details: upd.details }
+      );
+    }
   } else {
     logApplicationPayload('employment (stub o sin clienteId)', e);
   }

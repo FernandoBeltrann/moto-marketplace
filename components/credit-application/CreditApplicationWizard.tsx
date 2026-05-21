@@ -116,6 +116,7 @@ export function CreditApplicationWizard({
   const [buroPhase, setBuroPhase] = useState<BuroPhase>('enter');
   const [buroBusy, setBuroBusy] = useState(false);
   const [buroBusyMessage, setBuroBusyMessage] = useState<string>('');
+  const [zipLookupBusy, setZipLookupBusy] = useState(false);
 
   const applicationId = serverState?.applicationId ?? null;
 
@@ -439,15 +440,18 @@ export function CreditApplicationWizard({
   }, []);
 
   const showNav = step < 6;
+  const overlayBusy = loading || buroBusy || zipLookupBusy;
   const overlayMessage = loading
     ? loadingMessage || 'Procesando…'
     : buroBusy
       ? buroBusyMessage || 'Procesando…'
-      : '';
+      : zipLookupBusy
+        ? 'Validando código postal…'
+        : '';
 
   return (
     <div className="calculator credit-wizard">
-      <WizardLoadingOverlay show={loading || buroBusy} message={overlayMessage} />
+      <WizardLoadingOverlay show={overlayBusy} message={overlayMessage} />
       <WizardProgress step={step} />
       {initError ? <p className="small wizard-error">{initError}</p> : null}
 
@@ -465,6 +469,7 @@ export function CreditApplicationWizard({
           initial={form.address}
           neighborhoodOptions={neighborhoodOptions}
           onChange={handleAddressChange}
+          onLookupChange={setZipLookupBusy}
           onSubmit={handleAddress}
         />
       ) : null}
@@ -521,7 +526,7 @@ export function CreditApplicationWizard({
               type="button"
               className="btn light"
               onClick={handleWizardBack}
-              disabled={loading || buroBusy}
+              disabled={overlayBusy}
             >
               Atrás
             </button>
@@ -530,7 +535,7 @@ export function CreditApplicationWizard({
             type="submit"
             form="wizard-active-form"
             className="btn green"
-            disabled={loading || buroBusy}
+            disabled={overlayBusy}
           >
             {loading
               ? 'Guardando…'

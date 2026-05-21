@@ -103,9 +103,31 @@ export async function POST(req: NextRequest) {
 
   // Si pidieron cambiar teléfono y existe workfloo: PUT cliente + /resend_nip_kiban.
   if (body.changePhoneTo && body.serverState.workflooId) {
-    await updateCliente(body.serverState.clienteId, {
+    // Mismo invariante: el PUT debe llevar user_id y finva_user_id para no
+    // desvincular al cliente del asesor cuando le actualizamos el teléfono.
+    const { userId, finvaUserId } = body.serverState;
+    if (!finvaUserId || !userId) {
+      return stubError(
+        'Falta user_id o finva_user_id en la sesión. Vuelve al paso de domicilio para reasignar asesor.',
+        409,
+        {
+          label: 'buro/request change_phone ensure_ids',
+          details: { userId, finvaUserId, clienteId: body.serverState.clienteId },
+        }
+      );
+    }
+    const upd = await updateCliente(body.serverState.clienteId, {
       phone: `+52${body.changePhoneTo.replace(/\D/g, '').slice(-10)}`,
+      user_id: userId,
+      finva_user_id: finvaUserId,
     });
+    if (!upd.ok) {
+      return stubError(
+        upd.error || 'No pudimos actualizar tu teléfono en Finva',
+        upd.status || 502,
+        { label: 'buro/request change_phone update_cliente', details: upd.details }
+      );
+    }
     const r = await resendNipKiban({
       workflooId: body.serverState.workflooId,
       countryCode: '+52',

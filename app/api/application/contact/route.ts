@@ -35,12 +35,30 @@ export async function POST(req: NextRequest) {
   const email = body.contact.email.trim().toLowerCase();
 
   if (isFinvaConfigured() && body.serverState.clienteId) {
-    await updateCliente(body.serverState.clienteId, {
+    // Mismo invariante que en address/employment: si vamos a tocar /cliente,
+    // los IDs de asesor DEBEN viajar en el body. Si faltan, devolvemos un
+    // 409 accionable en vez de "actualizar" un cliente sin vinculación.
+    const { userId, finvaUserId, clienteId } = body.serverState;
+    if (!finvaUserId || !userId) {
+      return stubError(
+        'Falta user_id o finva_user_id en la sesión. Vuelve al paso de domicilio para reasignar asesor.',
+        409,
+        { label: 'contact ensure_ids', details: { userId, finvaUserId, clienteId } }
+      );
+    }
+    const upd = await updateCliente(clienteId, {
       phone: `+52${phone}`,
       email,
-      user_id: body.serverState.userId ?? null,
-      finva_user_id: body.serverState.finvaUserId ?? null,
+      user_id: userId,
+      finva_user_id: finvaUserId,
     });
+    if (!upd.ok) {
+      return stubError(
+        upd.error || 'No pudimos actualizar tu contacto en Finva',
+        upd.status || 502,
+        { label: 'contact update_cliente', details: upd.details }
+      );
+    }
   } else {
     logApplicationPayload('contact (cliente todavía no creado)', { phone, email });
   }
