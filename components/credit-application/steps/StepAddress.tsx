@@ -41,6 +41,19 @@ export function StepAddress({
   const [estado, setEstado] = useState(initial?.estado ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Si el cliente ya está registrado, el wizard hidrata todo el domicilio
+  // desde Finva (probe.hydratedAddress). En ese caso evitamos el lookup
+  // inicial de CP — bloquearía la UI ~3s con overlay para reconfirmar datos
+  // que ya tenemos. Si el usuario cambia el CP, el effect dispara el lookup
+  // normalmente. Sólo tratamos como "fully hydrated" si TODOS los campos
+  // críticos vienen llenos (CP + colonia + ciudad + estado).
+  const isInitiallyHydrated = Boolean(
+    initial?.postalCode?.trim() &&
+      initial?.neighborhood?.trim() &&
+      initial?.ciudad?.trim() &&
+      initial?.estado?.trim()
+  );
+
   const [lookup, setLookup] = useState<LookupState>(() => {
     if (neighborhoodOptions?.length) {
       return {
@@ -54,9 +67,13 @@ export function StepAddress({
   });
 
   // Guardamos el último CP consultado para no re-pedir al re-render con el
-  // mismo valor. Es un ref (no state) para no disparar nuevos efectos.
+  // mismo valor. Es un ref (no state) para no disparar nuevos efectos. Si la
+  // dirección ya viene hidratada, lo seedeamos con `initial.postalCode` para
+  // que el primer effect haga short-circuit y NO dispare lookupZip.
   const lastFetchedZipRef = useRef<string>(
-    initial?.postalCode && neighborhoodOptions?.length ? initial.postalCode : ''
+    (initial?.postalCode && (neighborhoodOptions?.length || isInitiallyHydrated))
+      ? initial.postalCode
+      : ''
   );
   // Snapshot mutable de la colonia seleccionada: se lee dentro del efecto sin
   // que su cambio reinicie el fetch (evita cancelar la request en vuelo).
