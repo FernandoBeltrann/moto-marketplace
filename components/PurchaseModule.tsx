@@ -168,11 +168,8 @@ function CardPaymentPanel({
   return (
     <div className="card-intro">
       <div className="card-intro__price">
-        <span className="small muted">Precio con tarjeta</span>
+        <span className="small muted">Precio</span>
         <strong>{formatMXN(amount)}</strong>
-        <span className="small muted card-intro__price-note">
-          Incluye comisión por procesamiento con tarjeta.
-        </span>
       </div>
 
       <p className="card-intro__lead">
@@ -186,12 +183,10 @@ function CardPaymentPanel({
           Amex).
         </li>
         <li>
-          Hasta <strong>{maxInstallments} meses</strong> con tu tarjeta de crédito
-          (intereses fijados por tu banco).
+          Hasta <strong>{maxInstallments} meses</strong> con tu tarjeta de crédito.
         </li>
         <li>
-          Pago <strong>100% seguro</strong> procesado por Mercado Pago. Nosotros nunca
-          vemos los datos de tu tarjeta.
+          Pago <strong>100% seguro</strong> procesado por Mercado Pago.
         </li>
       </ul>
 

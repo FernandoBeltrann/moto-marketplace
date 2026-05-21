@@ -386,16 +386,30 @@ async function runBuroLoop(
   pass(`nipType=${r.nipType ?? 'sms/whatsapp'}  workflooId=${serverState.workflooId}`);
   info(`message="${r.message ?? ''}"`);
 
-  // 2do envío
-  header('buro/request — 2nd send (resend)');
+  const workflooBeforeResend = serverState.workflooId;
+
+  // 2do envío — RESEND sobre el mismo workfloo. El wizard manda `resend: true`
+  // para que el server llame `/resend_nip_kiban` (no `/send_nip_kiban`),
+  // preservando el contador de intentos de Kiban.
+  header('buro/request — 2nd send (resend sobre mismo workfloo)');
   await sleep(1500);
   r = await call<BuroReq>('POST', '/api/application/buro/request', {
     serverState,
     contact: { email: EMAIL, phone: PHONE },
     identity,
     address,
+    resend: true,
   });
+  serverState = r.serverState;
   pass(`nipType=${r.nipType ?? 'sms/whatsapp'}`);
+  if (serverState.workflooId !== workflooBeforeResend) {
+    warn(
+      `workflooId cambió tras 'resend' (antes=${workflooBeforeResend} ahora=${serverState.workflooId}). ` +
+        `Esperábamos que se reutilizara para que Kiban escale a email en el 3er intento.`
+    );
+  } else {
+    info(`workflooId conservado: ${serverState.workflooId}`);
+  }
 
   // 3er envío (esperamos email fallback)
   header('buro/request — 3rd send (esperando fallback a EMAIL)');
@@ -405,13 +419,20 @@ async function runBuroLoop(
     contact: { email: EMAIL, phone: PHONE },
     identity,
     address,
+    resend: true,
   });
+  serverState = r.serverState;
   if (r.nipType === 'email') {
     pass(`nipType=email  ← fallback al 3er intento, como se esperaba`);
   } else {
     warn(
       `nipType=${r.nipType ?? '(none)'} — esperábamos 'email' al 3er intento. ` +
         `Si Finva sandbox no implementa el fallback aún, ignora este warning.`
+    );
+  }
+  if (serverState.workflooId !== workflooBeforeResend) {
+    warn(
+      `workflooId cambió en el 3er intento (antes=${workflooBeforeResend} ahora=${serverState.workflooId}).`
     );
   }
 

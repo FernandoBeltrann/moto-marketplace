@@ -27,6 +27,7 @@ import {
 } from '@/lib/credit-application/storage';
 import { track } from '@/lib/analytics';
 import { WizardProgress } from './WizardProgress';
+import { WizardLoadingOverlay } from './WizardLoadingOverlay';
 import { StepContact } from './steps/StepContact';
 import { StepIdentification } from './steps/StepIdentification';
 import { StepAddress } from './steps/StepAddress';
@@ -110,9 +111,11 @@ export function CreditApplicationWizard({
   );
   const [neighborhoodOptions, setNeighborhoodOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [initError, setInitError] = useState('');
   const [buroPhase, setBuroPhase] = useState<BuroPhase>('enter');
   const [buroBusy, setBuroBusy] = useState(false);
+  const [buroBusyMessage, setBuroBusyMessage] = useState<string>('');
 
   const applicationId = serverState?.applicationId ?? null;
 
@@ -187,6 +190,7 @@ export function CreditApplicationWizard({
 
   async function handleContact(data: ContactData) {
     setLoading(true);
+    setLoadingMessage('Validando tus datos…');
     setInitError('');
     try {
       const changed = contactChanged(form.contact, data);
@@ -257,6 +261,7 @@ export function CreditApplicationWizard({
 
   async function handleIdentification(data: IdentityData) {
     setLoading(true);
+    setLoadingMessage('Guardando tu identificación…');
     setInitError('');
     try {
       const state = await ensureApplication();
@@ -273,6 +278,7 @@ export function CreditApplicationWizard({
 
   async function handleAddress(data: AddressData) {
     setLoading(true);
+    setLoadingMessage('Guardando tu domicilio…');
     setInitError('');
     try {
       const state = await ensureApplication();
@@ -304,6 +310,7 @@ export function CreditApplicationWizard({
       // pull de buró: creamos la solicitud directamente con el reportId que ya
       // tiene Finva y vamos al paso 6.
       if (nextServerState.resolution === 'with_report' && nextServerState.reportId) {
+        setLoadingMessage('Generando tu solicitud…');
         try {
           const sol = await submitSolicitud({
             serverState: nextServerState,
@@ -345,6 +352,7 @@ export function CreditApplicationWizard({
 
   async function handleEmployment(data: EmploymentData) {
     setLoading(true);
+    setLoadingMessage('Guardando tu información laboral…');
     setInitError('');
     try {
       const state = await ensureApplication();
@@ -373,6 +381,7 @@ export function CreditApplicationWizard({
       return;
     }
     setLoading(true);
+    setLoadingMessage('Generando tu solicitud…');
     setInitError('');
     try {
       const res = await submitSolicitud({
@@ -430,9 +439,15 @@ export function CreditApplicationWizard({
   }, []);
 
   const showNav = step < 6;
+  const overlayMessage = loading
+    ? loadingMessage || 'Procesando…'
+    : buroBusy
+      ? buroBusyMessage || 'Procesando…'
+      : '';
 
   return (
     <div className="calculator credit-wizard">
+      <WizardLoadingOverlay show={loading || buroBusy} message={overlayMessage} />
       <WizardProgress step={step} />
       {initError ? <p className="small wizard-error">{initError}</p> : null}
 
@@ -471,6 +486,7 @@ export function CreditApplicationWizard({
           phase={buroPhase}
           onPhaseChange={setBuroPhase}
           onBusyChange={setBuroBusy}
+          onBusyMessageChange={setBuroBusyMessage}
           onServerStateChange={setServerState}
           onVerified={handleBuroVerified}
           onChangePhone={handleBuroChangePhone}

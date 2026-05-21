@@ -33,6 +33,12 @@ type Body = {
   identity?: IdentityData;
   address?: AddressData;
   changePhoneTo?: string;
+  /**
+   * Cuando es true y `serverState.workflooId` existe, llamamos
+   * `/resend_nip_kiban` (no abrimos un workfloo nuevo). Kiban decide solo si
+   * el reintento sale por WhatsApp o por email (3er intento → email).
+   */
+  resend?: boolean;
 };
 
 function buildSendNipPayload(input: {
@@ -116,6 +122,37 @@ export async function POST(req: NextRequest) {
       message: 'Reenviamos tu NIP al nuevo número.',
       nipType: phaseData.nipType,
     });
+  }
+
+  // Reenvío simple (mismo teléfono): si ya hay workfloo abierto, NO creamos
+  // uno nuevo, llamamos `/resend_nip_kiban`. Esto preserva el contador de
+  // intentos de Kiban (3er intento ⇒ NIP por email). Si el workfloo expiró,
+  // hacemos fallback abriendo uno nuevo con `/send_nip_kiban`.
+  if (body.resend && body.serverState.workflooId) {
+    const r = await resendNipKiban({
+      workflooId: body.serverState.workflooId,
+      countryCode: '+52',
+      phoneNumber: normalizeMxPhone(body.contact?.phone ?? ''),
+    });
+    if (r.ok) {
+      const phaseData = unwrapKiban(r.data);
+      return stubOk({
+        serverState: mergeServerState(body.serverState, {}),
+        message:
+          phaseData.nipType === 'email'
+            ? 'Te enviamos el NIP por correo electrónico.'
+            : 'Hemos reenviado un código de 6 dígitos a tu WhatsApp.',
+        nipType: phaseData.nipType,
+      });
+    }
+    // Workfloo expirado o cerrado → caemos al flujo normal (sendNipKiban abre
+    // uno nuevo). Para cualquier otro error devolvemos el detalle al cliente.
+    if (!/workfloo had already finished/i.test(r.error || '')) {
+      return stubError(r.error || 'No se pudo reenviar el NIP', r.status || 502, {
+        label: 'buro/request resend',
+        details: r.details,
+      });
+    }
   }
 
   if (!body.contact || !body.identity || !body.address) {

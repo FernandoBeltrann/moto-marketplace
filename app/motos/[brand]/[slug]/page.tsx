@@ -139,7 +139,7 @@ export default async function ProductPage({ params }: Props) {
             financingSummary={
               <div className="stat-grid">
                 <div className="stat stat--precio">
-                  <span className="small muted">Precio</span>
+                  <span className="small muted">Precio promoción</span>
                   <PrecioContado moto={moto} />
                 </div>
                 <div className="stat">

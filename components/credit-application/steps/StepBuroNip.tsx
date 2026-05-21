@@ -29,6 +29,7 @@ export function StepBuroNip({
   phase,
   onPhaseChange,
   onBusyChange,
+  onBusyMessageChange,
   onServerStateChange,
   onVerified,
   onChangePhone,
@@ -42,6 +43,7 @@ export function StepBuroNip({
   phase: BuroPhase;
   onPhaseChange: (phase: BuroPhase) => void;
   onBusyChange?: (busy: boolean) => void;
+  onBusyMessageChange?: (message: string) => void;
   onServerStateChange: (next: CreditApplicationServerState) => void;
   onVerified: (verifyResult: { reportId?: number }) => void | Promise<void>;
   onChangePhone: () => void;
@@ -59,10 +61,19 @@ export function StepBuroNip({
 
   const phoneLabel = phone ? formatMxPhoneDisplay(phone) : null;
   const busy = status === 'requesting' || status === 'verifying';
+  const busyMessage =
+    status === 'verifying'
+      ? 'Verificando tu NIP…'
+      : status === 'requesting'
+        ? 'Enviando tu NIP…'
+        : '';
 
   useEffect(() => {
     onBusyChange?.(busy);
   }, [busy, onBusyChange]);
+  useEffect(() => {
+    onBusyMessageChange?.(busyMessage);
+  }, [busyMessage, onBusyMessageChange]);
 
   useEffect(() => {
     // Si el cliente ya tiene un `reportId` (BC consultado previamente —
@@ -82,9 +93,24 @@ export function StepBuroNip({
     (async () => {
       setStatus('requesting');
       try {
-        const res = await requestBuroNip(serverState, { contact, identity, address });
+        // Si ya hay un workfloo abierto (e.g. el usuario navegó Atrás y volvió
+        // a este paso), marcamos `resend: true` para que el server llame
+        // `/resend_nip_kiban` y NO genere un workfloo nuevo en Kiban (lo cual
+        // rompía el contador de intentos: WA → WA → email al 3ro).
+        const isResend = Boolean(serverState.workflooId);
+        const res = await requestBuroNip(serverState, {
+          contact,
+          identity,
+          address,
+          resend: isResend,
+        });
         if (!cancelled) {
-          setMessage(res.message ?? 'Hemos enviado un código de 6 dígitos a tu WhatsApp.');
+          setMessage(
+            res.message ??
+              (res.nipType === 'email'
+                ? 'Te enviamos el NIP por correo electrónico.'
+                : 'Hemos enviado un código de 6 dígitos a tu WhatsApp.')
+          );
           if (res.serverState) onServerStateChange(res.serverState);
           if (res.nipType === 'email') setEmailFallback(true);
           setStatus('ready');
@@ -118,10 +144,24 @@ export function StepBuroNip({
     setError('');
     setStatus('requesting');
     try {
-      const res = await requestBuroNip(serverState, { contact, identity, address });
+      // IMPORTANTE: marcamos `resend: true` para que el server llame
+      // `/resend_nip_kiban` con el workflooId existente en vez de crear un
+      // workfloo nuevo con `/send_nip_kiban`. Sin esto perdíamos la lógica
+      // de Kiban que en el 3er intento manda el NIP por email.
+      const res = await requestBuroNip(serverState, {
+        contact,
+        identity,
+        address,
+        resend: true,
+      });
       if (res.serverState) onServerStateChange(res.serverState);
       if (res.nipType === 'email') setEmailFallback(true);
-      setMessage(res.message ?? 'Hemos enviado un código de 6 dígitos a tu WhatsApp.');
+      setMessage(
+        res.message ??
+          (res.nipType === 'email'
+            ? 'Te enviamos el NIP por correo electrónico.'
+            : 'Hemos reenviado un código de 6 dígitos a tu WhatsApp.')
+      );
       setStatus('ready');
       setResendIn(30);
     } catch (err) {

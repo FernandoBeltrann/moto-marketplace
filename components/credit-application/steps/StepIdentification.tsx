@@ -92,7 +92,14 @@ export function StepIdentification({
             maxLength={18}
           />
           <button type="button" className="btn" onClick={consultar} disabled={loading}>
-            {loading ? 'Consultando…' : 'Consultar'}
+            {loading ? (
+              <span className="btn-loading">
+                <span className="btn-loading__spinner" aria-hidden />
+                Consultando…
+              </span>
+            ) : (
+              'Consultar'
+            )}
           </button>
         </div>
       </WizardField>

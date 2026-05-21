@@ -163,7 +163,6 @@ export function StepAddress({
           placeholder="Calle ejemplo"
           value={street}
           onChange={(e) => setStreet(e.target.value)}
-          disabled={isLookingUp}
         />
       </WizardField>
       <div className="wizard-address-grid">
@@ -173,7 +172,6 @@ export function StepAddress({
             placeholder="123"
             value={exteriorNumber}
             onChange={(e) => setExteriorNumber(e.target.value)}
-            disabled={isLookingUp}
           />
         </WizardField>
         <WizardField label="Número interior (opcional)">
@@ -182,7 +180,6 @@ export function StepAddress({
             placeholder="2-A"
             value={interiorNumber}
             onChange={(e) => setInteriorNumber(e.target.value)}
-            disabled={isLookingUp}
           />
         </WizardField>
         <WizardField
@@ -192,15 +189,21 @@ export function StepAddress({
             (lookup.status === 'error' ? lookup.message : undefined)
           }
         >
-          <input
-            className="input"
-            inputMode="numeric"
-            placeholder="01230"
-            maxLength={5}
-            value={postalCode}
-            onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ''))}
-            disabled={isLookingUp}
-          />
+          <div className="wizard-zip">
+            <input
+              className="input"
+              inputMode="numeric"
+              placeholder="01230"
+              maxLength={5}
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ''))}
+            />
+            {isLookingUp ? (
+              <span className="wizard-zip__spinner" aria-hidden>
+                <span className="spinner-dot" />
+              </span>
+            ) : null}
+          </div>
           {isLookingUp ? (
             <span className="small muted" style={{ marginTop: 4, display: 'block' }}>
               Buscando colonia / ciudad…
@@ -213,7 +216,6 @@ export function StepAddress({
               className="select"
               value={neighborhood}
               onChange={(e) => setNeighborhood(e.target.value)}
-              disabled={isLookingUp}
             >
               <option value="">Selecciona colonia</option>
               {lookup.neighborhoods.map((n) => (
@@ -228,7 +230,6 @@ export function StepAddress({
               placeholder="Santa Fe"
               value={neighborhood}
               onChange={(e) => setNeighborhood(e.target.value)}
-              disabled={isLookingUp}
             />
           )}
         </WizardField>
@@ -238,7 +239,6 @@ export function StepAddress({
             placeholder="Álvaro Obregón"
             value={ciudad}
             onChange={(e) => setCiudad(e.target.value)}
-            disabled={isLookingUp}
           />
         </WizardField>
         <WizardField label="Estado" error={errors.estado}>
@@ -247,7 +247,6 @@ export function StepAddress({
             placeholder="Ciudad de México"
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
-            disabled={isLookingUp}
           />
         </WizardField>
       </div>

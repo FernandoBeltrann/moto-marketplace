@@ -184,6 +184,12 @@ export function requestBuroNip(
     identity: IdentityData;
     address: AddressData;
     changePhoneTo?: string;
+    /**
+     * Cuando es true y ya existe `serverState.workflooId`, el server llama a
+     * `/resend_nip_kiban` (no crea un workfloo nuevo) para respetar la lógica
+     * de Kiban: WhatsApp → WhatsApp → email en el 3er intento.
+     */
+    resend?: boolean;
   }
 ) {
   return post<BuroRequestResponse>('/api/application/buro/request', {
@@ -192,6 +198,7 @@ export function requestBuroNip(
     identity: payload.identity,
     address: payload.address,
     changePhoneTo: payload.changePhoneTo,
+    resend: payload.resend,
   });
 }
 
