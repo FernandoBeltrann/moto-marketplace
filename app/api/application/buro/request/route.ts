@@ -1,8 +1,8 @@
 /**
- * Solicita el NIP de Buró vía Kiban (`/send_nip_kiban`). Si recibe el error
- * "the workfloo had already finished" descarta el workflooId previo y reintenta
- * una vez. Si llega `changePhoneTo` actualiza primero el cliente con el nuevo
- * teléfono y luego reenvía con `/resend_nip_kiban` (caso "cambiar número").
+ * Buró NIP — un endpoint por acción:
+ *   - Sin `resend` → `/send_nip_kiban` (sólo al entrar al paso, una vez)
+ *   - `resend: true` → `/resend_nip_kiban` (botón "Reenviar código")
+ *   - `changePhoneTo` → PUT cliente + `/resend_nip_kiban`
  */
 import { NextRequest } from 'next/server';
 import {
@@ -13,6 +13,7 @@ import {
   stubOk,
 } from '@/lib/credit-application/server';
 import {
+  getBcKiban,
   resendNipKiban,
   sendNipKiban,
   unwrapKiban,
@@ -64,6 +65,28 @@ function buildSendNipPayload(input: {
     email: contact.email.trim().toLowerCase(),
     address: fullAddress,
     country_code: '+52',
+  };
+}
+
+function isWorkflooFinishedError(message: string | undefined): boolean {
+  return /workfloo had already finished/i.test(message ?? '');
+}
+
+/** Si Kiban cerró el workfloo pero ya hay BC, recuperamos `reportId` sin reenviar NIP. */
+async function tryRecoverFinishedWorkfloo(
+  serverState: CreditApplicationServerState,
+  workflooId: string
+) {
+  if (!serverState.clienteId) return null;
+  const bc = await getBcKiban(serverState.clienteId, workflooId);
+  if (!bc.ok || !bc.data?.report_id) return null;
+  return {
+    serverState: mergeServerState(serverState, {
+      workflooId,
+      reportId: bc.data.report_id,
+    }),
+    reportId: bc.data.report_id,
+    message: 'Tu Buró ya fue consultado. Continuamos con tu solicitud.',
   };
 }
 
@@ -146,11 +169,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Reenvío simple (mismo teléfono): si ya hay workfloo abierto, NO creamos
-  // uno nuevo, llamamos `/resend_nip_kiban`. Esto preserva el contador de
-  // intentos de Kiban (3er intento ⇒ NIP por email). Si el workfloo expiró,
-  // hacemos fallback abriendo uno nuevo con `/send_nip_kiban`.
-  if (body.resend && body.serverState.workflooId) {
+  // Reenvío explícito (botón del usuario): sólo `/resend_nip_kiban`.
+  if (body.resend === true && body.serverState.workflooId) {
     const r = await resendNipKiban({
       workflooId: body.serverState.workflooId,
       countryCode: '+52',
@@ -167,9 +187,19 @@ export async function POST(req: NextRequest) {
         nipType: phaseData.nipType,
       });
     }
-    // Workfloo expirado o cerrado → caemos al flujo normal (sendNipKiban abre
-    // uno nuevo). Para cualquier otro error devolvemos el detalle al cliente.
-    if (!/workfloo had already finished/i.test(r.error || '')) {
+    if (isWorkflooFinishedError(r.error)) {
+      const recovered = await tryRecoverFinishedWorkfloo(
+        body.serverState,
+        body.serverState.workflooId
+      );
+      if (recovered) return stubOk(recovered);
+      // Workfloo cerrado sin reporte recuperable: descartamos el id y abrimos uno nuevo.
+      body = {
+        ...body,
+        serverState: mergeServerState(body.serverState, { workflooId: null }),
+        resend: false,
+      };
+    } else {
       return stubError(r.error || 'No se pudo reenviar el NIP', r.status || 502, {
         label: 'buro/request resend',
         details: r.details,
@@ -200,11 +230,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let stateForSend = body.serverState;
   let res = await sendNipKiban(reqPayload);
   let kiban = res.ok ? unwrapKiban(res.data) : null;
 
-  if (!res.ok && /workfloo had already finished/i.test(res.error || '')) {
-    // Reintenta sin workflooId previo.
+  if (!res.ok && isWorkflooFinishedError(res.error) && stateForSend.workflooId) {
+    const recovered = await tryRecoverFinishedWorkfloo(stateForSend, stateForSend.workflooId);
+    if (recovered) return stubOk(recovered);
+    stateForSend = mergeServerState(stateForSend, { workflooId: null });
     res = await sendNipKiban(reqPayload);
     kiban = res.ok ? unwrapKiban(res.data) : null;
   }
@@ -217,8 +250,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const nextState = mergeServerState(body.serverState, {
-    workflooId: kiban.workflooId ?? body.serverState.workflooId ?? null,
+  const nextState = mergeServerState(stateForSend, {
+    workflooId: kiban.workflooId ?? null,
   });
 
   return stubOk({

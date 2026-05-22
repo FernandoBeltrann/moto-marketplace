@@ -16,6 +16,7 @@ import {
   stubError,
   stubOk,
 } from '@/lib/credit-application/server';
+import { buildSolicitudEmploymentFields } from '@/lib/credit-application/employment-finva';
 import {
   addSolicitud,
   getAdvisorDetails,
@@ -175,6 +176,7 @@ export async function POST(req: NextRequest) {
     preferred_store_id: body.serverState.storeId ?? null,
     holding_page_url: holding,
     parent_solicitud_id: parentSolicitudId,
+    ...(body.employment ? buildSolicitudEmploymentFields(body.employment) : {}),
   };
 
   const created = await addSolicitud(payload);

@@ -88,7 +88,10 @@ export type FinvaCliente = {
   user_id?: number | null;
   finva_user_id?: number | null;
   flow_process?: string;
-  // Preguntas clave (Diego)
+};
+
+/** 5 preguntas clave del perfil — se envían en `/add_solicitud`, no en PUT `/cliente`. */
+export type FinvaSolicitudKeyQuestions = {
   income_source_type?: string[];
   income_proof?: string[];
   monthly_income?: number | null;
@@ -157,7 +160,8 @@ export type FinvaSolicitud = {
 export type FinvaAddSolicitudPayload = Omit<
   FinvaSolicitud,
   'id' | 'created_at' | 'id_motorcycle'
->;
+> &
+  FinvaSolicitudKeyQuestions;
 
 export type FinvaZipResponse = {
   ciudad?: string;

@@ -13,6 +13,11 @@ import {
 } from '@/types/credit-application';
 import { WizardField } from '../WizardField';
 
+const GUARANTOR_OPTIONS: { value: GuarantorOption; label: string }[] = [
+  { value: 'Si', label: 'Sí' },
+  { value: 'NO', label: 'No' },
+];
+
 const TENURE_OPTIONS = [
   { value: 3, label: 'Menos de 6 meses' },
   { value: 9, label: '6–12 meses' },
@@ -198,21 +203,22 @@ export function StepEmployment({
       </WizardField>
 
       <WizardField label="¿Puedes conseguir un aval?" error={errors.possibleGuarantor}>
-        <div className="wizard-row">
-          <button
-            type="button"
-            className={`btn ${possibleGuarantor === 'Si' ? 'green' : 'light'}`}
-            onClick={() => setPossibleGuarantor('Si')}
-          >
-            Sí
-          </button>
-          <button
-            type="button"
-            className={`btn ${possibleGuarantor === 'NO' ? 'green' : 'light'}`}
-            onClick={() => setPossibleGuarantor('NO')}
-          >
-            No
-          </button>
+        <div
+          className="wizard-row wizard-row--equal"
+          role="group"
+          aria-label="¿Puedes conseguir un aval?"
+        >
+          {GUARANTOR_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`btn ${possibleGuarantor === opt.value ? 'green' : 'light'}`}
+              aria-pressed={possibleGuarantor === opt.value}
+              onClick={() => setPossibleGuarantor(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </WizardField>
     </form>

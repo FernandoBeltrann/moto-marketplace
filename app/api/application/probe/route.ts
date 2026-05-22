@@ -34,6 +34,7 @@ import {
   validateClient,
   validatePhone,
 } from '@/lib/finva/client';
+import { normalizeHydratedAddress } from '@/lib/credit-application/address';
 import {
   isValidEmail,
   isValidMxPhone,
@@ -108,9 +109,7 @@ function hydrateIdentity(client: FinvaCliente): Partial<IdentityData> {
 }
 
 function hydrateAddress(client: FinvaCliente): Partial<AddressData> {
-  return {
-    // El backend Finva no separa calle/exterior/interior; mandamos todo en
-    // `street` para que el usuario verifique y, si quiere, lo separe.
+  return normalizeHydratedAddress({
     street: client.street_address ?? '',
     exteriorNumber: '',
     interiorNumber: client.interior_number ?? '',
@@ -118,7 +117,7 @@ function hydrateAddress(client: FinvaCliente): Partial<AddressData> {
     neighborhood: client.suburb_colonia ?? '',
     ciudad: client.ciudad ?? '',
     estado: client.estado ?? '',
-  };
+  })!;
 }
 
 export async function POST(req: NextRequest) {

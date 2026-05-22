@@ -1,9 +1,7 @@
 /**
- * Empleo + 5 preguntas clave. Si ya hay clienteId hace PUT /cliente/{id}
- * con `profesion` (= role) y los campos de las preguntas.
- *
- * El payload completo de la solicitud (incluidas estas mismas preguntas) se
- * envía después en /api/application/submit cuando el buró termine OK.
+ * Empleo + 5 preguntas clave. Si ya hay clienteId hace PUT /cliente/{id} sólo
+ * con `profesion` (= role). Las 5 preguntas se envían en /submit vía
+ * `/add_solicitud` (no son campos del cliente en Finva).
  */
 import { NextRequest } from 'next/server';
 import {
@@ -13,6 +11,7 @@ import {
   stubError,
   stubOk,
 } from '@/lib/credit-application/server';
+import { buildClienteEmploymentPatch } from '@/lib/credit-application/employment-finva';
 import { updateCliente } from '@/lib/finva/client';
 import type { CreditApplicationServerState, EmploymentData } from '@/types/credit-application';
 
@@ -62,17 +61,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const upd = await updateCliente(clienteId, {
-      profesion: e.role,
-      time_living_there: undefined,
-      income_source_type: [e.incomeSourceType],
-      income_proof: [e.incomeProof],
-      monthly_income: e.monthlyIncome,
-      client_credit_history_description: e.creditHistory,
-      possible_guarantor: e.possibleGuarantor,
-      user_id: userId,
-      finva_user_id: finvaUserId,
-    });
+    const upd = await updateCliente(
+      clienteId,
+      buildClienteEmploymentPatch(e, { userId, finvaUserId })
+    );
     if (!upd.ok) {
       return stubError(
         upd.error || 'No pudimos guardar tu información laboral en Finva',

@@ -767,7 +767,14 @@ p { color: var(--muted); line-height: 1.6; }
 .credit-wizard .wizard-progress__fill { height: 100%; background: var(--green); border-radius: 999px; transition: width .25s ease; }
 .credit-wizard .wizard-progress__title { margin: 14px 0 6px; font-size: 20px; }
 .credit-wizard .wizard-form { display: grid; gap: 14px; }
+.credit-wizard .wizard-field { display: grid; gap: 6px; }
+.credit-wizard .wizard-field__label--error { color: #b42318; }
+.credit-wizard .wizard-field__error { color: #b42318; margin: 0; }
+.credit-wizard .wizard-field--has-error .input,
+.credit-wizard .wizard-field--has-error .select { border-color: #b42318; }
 .credit-wizard .wizard-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.credit-wizard .wizard-row--equal { grid-template-columns: 1fr 1fr; align-items: stretch; }
+.credit-wizard .wizard-row--equal .btn { width: 100%; }
 .credit-wizard .wizard-address-grid,
 .credit-wizard .wizard-identity-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .credit-wizard .wizard-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
@@ -897,6 +904,7 @@ p { color: var(--muted); line-height: 1.6; }
   .credit-wizard .wizard-address-grid,
   .credit-wizard .wizard-identity-grid { grid-template-columns: 1fr; }
   .credit-wizard .wizard-row { grid-template-columns: 1fr; }
+  .credit-wizard .wizard-row--equal { grid-template-columns: 1fr 1fr; }
 }
 .moto-reviews { border-top: 1px solid var(--line); margin-top: 8px; padding-bottom: 48px; }
 .moto-reviews-head { margin-bottom: 22px; }
