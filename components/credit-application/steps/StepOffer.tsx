@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { site } from '@/lib/site';
 import { formatMXN } from '@/lib/catalog-format';
 import type { QuoteContext } from '@/types/credit-application';
-import { track } from '@/lib/analytics';
+import { track, trackWhatsappClicked } from '@/lib/analytics';
 import { fireFinanceConversion } from '@/lib/finva/conversion';
 
 function buildWaNumber(phone?: string | null): string {
@@ -25,19 +25,27 @@ function buildAgentDisplay(phone?: string | null): string {
 
 export function StepOffer({
   motorcycleId,
+  motorcycleSlug,
+  motorcycleBrand,
+  motorcycleModel,
   motorcycleName,
   motorcyclePrice,
   solicitudId,
   agentName,
   agentPhone,
+  city,
   quote,
 }: {
   motorcycleId: string;
+  motorcycleSlug: string;
+  motorcycleBrand: string;
+  motorcycleModel: string;
   motorcycleName: string;
   motorcyclePrice: number;
   solicitudId: number | string;
   agentName?: string | null;
   agentPhone?: string | null;
+  city?: string;
   quote: QuoteContext;
 }) {
   useEffect(() => {
@@ -77,14 +85,21 @@ export function StepOffer({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() =>
+          onClick={() => {
+            trackWhatsappClicked({
+              motorcycleSlug,
+              motorcycleBrand,
+              motorcycleModel,
+              sourcePage: 'credit_app_step6',
+              city,
+            });
             track('click_whatsapp', {
               source: 'credit_app_step6',
               motorcycleName,
               motorcycleId,
               solicitudId,
-            })
-          }
+            });
+          }}
         >
           Continuar por WhatsApp
         </a>

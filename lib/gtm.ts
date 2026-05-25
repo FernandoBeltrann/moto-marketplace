@@ -1,16 +1,21 @@
+/**
+ * Eventos GTM / dataLayer ya configurados en el contenedor.
+ * No cambiar nombres ni parámetros sin actualizar GTM.
+ */
 import { cashPrice } from '@/lib/catalog-format';
 import type { Motorcycle } from '@/types/motorcycle';
 
-export type GTMEventParams = Record<string, string | number | boolean | null | undefined>;
+type GTMEventParams = Record<string, string | number | boolean | null | undefined>;
 
-export function pushGTMEvent(eventName: string, params: GTMEventParams = {}) {
+function pushGTMEvent(eventName: string, params: GTMEventParams = {}) {
   if (typeof window === 'undefined') return;
 
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({
-    event: eventName,
-    ...params,
-  });
+  window.dataLayer.push({ event: eventName, ...params });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[GTM legacy]', eventName, params);
+  }
 }
 
 export function trackViewMotorcycle(moto: Motorcycle) {
@@ -36,11 +41,9 @@ export function trackCalculatorInteraction({
   termMonths: number;
   estimatedMonthlyPayment: number;
 }) {
-  const name = `${motorcycle.brand} ${motorcycle.model} ${motorcycle.year}`;
-
   pushGTMEvent('calculator_interaction', {
     motorcycle_id: motorcycle.slug,
-    motorcycle_name: name,
+    motorcycle_name: `${motorcycle.brand} ${motorcycle.model} ${motorcycle.year}`,
     brand: motorcycle.brand,
     price: motorcycle.price,
     down_payment: downPayment,
