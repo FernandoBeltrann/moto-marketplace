@@ -72,17 +72,16 @@ export function PurchaseModule({
           role="tab"
           id="tab-card"
           aria-controls="panel-card"
-          aria-selected={tab === 'card'}
-          className="purchase-tabs__btn"
-          onClick={() => {
-            setTab('card');
-            track('view_product', { motorcycleId: motorcycle.id, tab: 'card' });
-          }}
+          aria-selected={false}
+          aria-disabled="true"
+          className="purchase-tabs__btn purchase-tabs__btn--disabled"
+          disabled
         >
-          <span className="purchase-tabs__btn-title">Tarjeta de crédito o débito</span>
-          <span className="purchase-tabs__btn-sub">
-            Mercado Pago · hasta {mercadoPagoMaxInstallments} meses
+          <span className="purchase-tabs__btn-title">
+            Tarjeta de crédito o débito
+            <span className="purchase-tabs__soon">Próximamente</span>
           </span>
+          <span className="purchase-tabs__btn-sub">Pago con tarjeta disponible pronto</span>
         </button>
       </div>
 
