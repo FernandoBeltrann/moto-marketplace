@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { AddressData } from '@/types/credit-application';
-import { lookupZip } from '@/lib/credit-application/api';
+import { normalizeHydratedAddress } from '@/lib/credit-application/address';
+import { CreditApplicationApiError, lookupZip } from '@/lib/credit-application/api';
 import { isValidPostalCode } from '@/lib/credit-application/validation';
 import { WizardField } from '../WizardField';
 
@@ -16,6 +17,7 @@ export function StepAddress({
   initial,
   neighborhoodOptions,
   onChange,
+  onLookupChange,
   onSubmit,
 }: {
   initial?: Partial<AddressData>;
@@ -23,23 +25,43 @@ export function StepAddress({
   neighborhoodOptions?: string[];
   /** Notifica al wizard de cada cambio para persistir live en sessionStorage. */
   onChange?: (partial: Partial<AddressData>) => void;
+  /**
+   * Notifica al wizard cuando hay un lookup de CP en vuelo, para que muestre
+   * el overlay global (fondo gris + spinner) y bloquee otros clics mientras
+   * el backend resuelve la consulta de colonia/ciudad.
+   */
+  onLookupChange?: (busy: boolean) => void;
   onSubmit: (data: AddressData) => void | Promise<void>;
 }) {
-  const [street, setStreet] = useState(initial?.street ?? '');
-  const [exteriorNumber, setExteriorNumber] = useState(initial?.exteriorNumber ?? '');
-  const [interiorNumber, setInteriorNumber] = useState(initial?.interiorNumber ?? '');
-  const [postalCode, setPostalCode] = useState(initial?.postalCode ?? '');
-  const [neighborhood, setNeighborhood] = useState(initial?.neighborhood ?? '');
-  const [ciudad, setCiudad] = useState(initial?.ciudad ?? '');
-  const [estado, setEstado] = useState(initial?.estado ?? '');
+  const seeded = normalizeHydratedAddress(initial) ?? initial;
+  const [street, setStreet] = useState(seeded?.street ?? '');
+  const [exteriorNumber, setExteriorNumber] = useState(seeded?.exteriorNumber ?? '');
+  const [interiorNumber, setInteriorNumber] = useState(seeded?.interiorNumber ?? '');
+  const [postalCode, setPostalCode] = useState(seeded?.postalCode ?? '');
+  const [neighborhood, setNeighborhood] = useState(seeded?.neighborhood ?? '');
+  const [ciudad, setCiudad] = useState(seeded?.ciudad ?? '');
+  const [estado, setEstado] = useState(seeded?.estado ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Si el cliente ya está registrado, el wizard hidrata todo el domicilio
+  // desde Finva (probe.hydratedAddress). En ese caso evitamos el lookup
+  // inicial de CP — bloquearía la UI ~3s con overlay para reconfirmar datos
+  // que ya tenemos. Si el usuario cambia el CP, el effect dispara el lookup
+  // normalmente. Sólo tratamos como "fully hydrated" si TODOS los campos
+  // críticos vienen llenos (CP + colonia + ciudad + estado).
+  const isInitiallyHydrated = Boolean(
+    seeded?.postalCode?.trim() &&
+      seeded?.neighborhood?.trim() &&
+      seeded?.ciudad?.trim() &&
+      seeded?.estado?.trim()
+  );
 
   const [lookup, setLookup] = useState<LookupState>(() => {
     if (neighborhoodOptions?.length) {
       return {
         status: 'ok',
-        ciudad: initial?.ciudad ?? '',
-        estado: initial?.estado ?? '',
+        ciudad: seeded?.ciudad ?? '',
+        estado: seeded?.estado ?? '',
         neighborhoods: neighborhoodOptions,
       };
     }
@@ -47,9 +69,13 @@ export function StepAddress({
   });
 
   // Guardamos el último CP consultado para no re-pedir al re-render con el
-  // mismo valor. Es un ref (no state) para no disparar nuevos efectos.
+  // mismo valor. Es un ref (no state) para no disparar nuevos efectos. Si la
+  // dirección ya viene hidratada, lo seedeamos con `initial.postalCode` para
+  // que el primer effect haga short-circuit y NO dispare lookupZip.
   const lastFetchedZipRef = useRef<string>(
-    initial?.postalCode && neighborhoodOptions?.length ? initial.postalCode : ''
+    (seeded?.postalCode && (neighborhoodOptions?.length || isInitiallyHydrated))
+      ? seeded.postalCode
+      : ''
   );
   // Snapshot mutable de la colonia seleccionada: se lee dentro del efecto sin
   // que su cambio reinicie el fetch (evita cancelar la request en vuelo).
@@ -114,6 +140,11 @@ export function StepAddress({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        // CP sin catálogo: mismo modo que stub vacío (texto libre), sin error en UI.
+        if (err instanceof CreditApplicationApiError && err.status === 404) {
+          setLookup({ status: 'ok', ciudad: '', estado: '', neighborhoods: [] });
+          return;
+        }
         const message =
           err instanceof Error ? err.message : 'No pudimos consultar tu código postal';
         setLookup({ status: 'error', message });
@@ -127,6 +158,22 @@ export function StepAddress({
   const hasColoniaSelect =
     lookup.status === 'ok' && lookup.neighborhoods.length > 0;
   const isLookingUp = lookup.status === 'loading';
+
+  // Propagamos el estado de lookup al wizard para que renderice el overlay
+  // global (fondo gris + spinner) mientras el backend valida el CP. Lo hacemos
+  // vía ref para que cambiar la identidad del callback no dispare el effect.
+  const onLookupChangeRef = useRef(onLookupChange);
+  useEffect(() => {
+    onLookupChangeRef.current = onLookupChange;
+  }, [onLookupChange]);
+  useEffect(() => {
+    onLookupChangeRef.current?.(isLookingUp);
+  }, [isLookingUp]);
+  useEffect(() => {
+    return () => {
+      onLookupChangeRef.current?.(false);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -182,13 +229,7 @@ export function StepAddress({
             onChange={(e) => setInteriorNumber(e.target.value)}
           />
         </WizardField>
-        <WizardField
-          label="Código postal"
-          error={
-            errors.postalCode ||
-            (lookup.status === 'error' ? lookup.message : undefined)
-          }
-        >
+        <WizardField label="Código postal" error={errors.postalCode}>
           <div className="wizard-zip">
             <input
               className="input"

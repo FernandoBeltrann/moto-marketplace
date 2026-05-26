@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { requestBuroNip, verifyBuroNip } from '@/lib/credit-application/api';
 import { formatMxPhoneDisplay } from '@/lib/credit-application/phone';
 import { isValidNip } from '@/lib/credit-application/validation';
@@ -18,6 +18,7 @@ import { BuroTermsConsent } from '../buro/BuroTermsConsent';
 export type BuroPhase = 'enter' | 'authorize';
 
 const MAX_RETRIES_BEFORE_PHONE_HINT = 2;
+const DEFAULT_NIP_MESSAGE = 'Hemos enviado un código de 6 dígitos a tu WhatsApp.';
 
 export function StepBuroNip({
   serverState,
@@ -58,12 +59,18 @@ export function StepBuroNip({
   const [resendIn, setResendIn] = useState(0);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [emailFallback, setEmailFallback] = useState(false);
+  const [nipConfirmed, setNipConfirmed] = useState(false);
+
+  /** Evita doble `send_nip_kiban` (React Strict Mode / re-renders). */
+  const sendInflightRef = useRef<Promise<void> | null>(null);
 
   const phoneLabel = phone ? formatMxPhoneDisplay(phone) : null;
   const busy = status === 'requesting' || status === 'verifying';
   const busyMessage =
     status === 'verifying'
-      ? 'Verificando tu NIP…'
+      ? phase === 'authorize'
+        ? 'Autorizando consulta de Buró…'
+        : 'Verificando tu NIP…'
       : status === 'requesting'
         ? 'Enviando tu NIP…'
         : '';
@@ -76,12 +83,6 @@ export function StepBuroNip({
   }, [busyMessage, onBusyMessageChange]);
 
   useEffect(() => {
-    // Si el cliente ya tiene un `reportId` (BC consultado previamente —
-    // incluyendo el caso "rehidrato desde localStorage en step 5 porque el
-    // submit anterior falló por otra razón"), nunca abrimos un nuevo workfloo:
-    // Finva nos responderá `the workfloo had already finished` y el usuario
-    // queda atorado. Saltamos directo a `onVerified` para que el wizard intente
-    // crear la solicitud con el reporte existente.
     if (serverState.reportId) {
       setStatus('verifying');
       setMessage('Tu Buró ya fue consultado. Registrando tu solicitud…');
@@ -89,33 +90,43 @@ export function StepBuroNip({
       return;
     }
 
+    // Ya se envió el NIP en esta sesión: no volver a llamar send ni resend al montar.
+    if (serverState.workflooId) {
+      setStatus('ready');
+      setMessage((m) => m || DEFAULT_NIP_MESSAGE);
+      return;
+    }
+
+    if (sendInflightRef.current) return;
+
     let cancelled = false;
-    (async () => {
+    sendInflightRef.current = (async () => {
       setStatus('requesting');
       try {
-        // Si ya hay un workfloo abierto (e.g. el usuario navegó Atrás y volvió
-        // a este paso), marcamos `resend: true` para que el server llame
-        // `/resend_nip_kiban` y NO genere un workfloo nuevo en Kiban (lo cual
-        // rompía el contador de intentos: WA → WA → email al 3ro).
-        const isResend = Boolean(serverState.workflooId);
         const res = await requestBuroNip(serverState, {
           contact,
           identity,
           address,
-          resend: isResend,
+          resend: false,
         });
-        if (!cancelled) {
-          setMessage(
-            res.message ??
-              (res.nipType === 'email'
-                ? 'Te enviamos el NIP por correo electrónico.'
-                : 'Hemos enviado un código de 6 dígitos a tu WhatsApp.')
-          );
-          if (res.serverState) onServerStateChange(res.serverState);
-          if (res.nipType === 'email') setEmailFallback(true);
-          setStatus('ready');
-          setResendIn(30);
+        if (cancelled) return;
+        if (res.serverState) onServerStateChange(res.serverState);
+        const recoveredReportId = res.serverState?.reportId;
+        if (recoveredReportId) {
+          setMessage(res.message ?? 'Tu Buró ya fue consultado. Registrando tu solicitud…');
+          setStatus('verifying');
+          await onVerified({ reportId: recoveredReportId });
+          return;
         }
+        setMessage(
+          res.message ??
+            (res.nipType === 'email'
+              ? 'Te enviamos el NIP por correo electrónico.'
+              : DEFAULT_NIP_MESSAGE)
+        );
+        if (res.nipType === 'email') setEmailFallback(true);
+        setStatus('ready');
+        setResendIn(30);
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -125,13 +136,16 @@ export function StepBuroNip({
           );
           setStatus('error');
         }
+      } finally {
+        sendInflightRef.current = null;
       }
     })();
+
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverState.applicationId, serverState.reportId]);
+  }, [serverState.applicationId, serverState.reportId, serverState.workflooId]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -140,14 +154,10 @@ export function StepBuroNip({
   }, [resendIn]);
 
   async function handleResend() {
-    if (resendIn > 0 || busy) return;
+    if (resendIn > 0 || busy || !serverState.workflooId) return;
     setError('');
     setStatus('requesting');
     try {
-      // IMPORTANTE: marcamos `resend: true` para que el server llame
-      // `/resend_nip_kiban` con el workflooId existente en vez de crear un
-      // workfloo nuevo con `/send_nip_kiban`. Sin esto perdíamos la lógica
-      // de Kiban que en el 3er intento manda el NIP por email.
       const res = await requestBuroNip(serverState, {
         contact,
         identity,
@@ -155,6 +165,13 @@ export function StepBuroNip({
         resend: true,
       });
       if (res.serverState) onServerStateChange(res.serverState);
+      const recoveredReportId = res.serverState?.reportId;
+      if (recoveredReportId) {
+        setMessage(res.message ?? 'Tu Buró ya fue consultado. Registrando tu solicitud…');
+        setStatus('verifying');
+        await onVerified({ reportId: recoveredReportId });
+        return;
+      }
       if (res.nipType === 'email') setEmailFallback(true);
       setMessage(
         res.message ??
@@ -189,21 +206,38 @@ export function StepBuroNip({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!validateCommon()) return;
+
     if (phase === 'enter') {
-      if (!validateCommon()) return;
-      onPhaseChange('authorize');
+      setStatus('verifying');
+      try {
+        await verifyBuroNip(serverState, nip, 'confirm');
+        setNipConfirmed(true);
+        setStatus('ready');
+        onPhaseChange('authorize');
+      } catch {
+        setFailedAttempts((n) => n + 1);
+        setError('NIP incorrecto o expirado. Verifica e intenta de nuevo.');
+        setStatus('ready');
+      }
       return;
     }
-    if (!validateCommon()) return;
+
+    if (!nipConfirmed) {
+      setError('Primero verifica tu NIP en el paso anterior.');
+      onPhaseChange('enter');
+      return;
+    }
+
     setStatus('verifying');
     try {
-      const res = await verifyBuroNip(serverState, nip);
+      const res = await verifyBuroNip(serverState, nip, 'authorize');
       if (res.serverState) onServerStateChange(res.serverState);
       track('credit_app_buro_ok', { motorcycleId, reportId: res.reportId });
       await onVerified({ reportId: res.reportId });
     } catch {
       setFailedAttempts((n) => n + 1);
-      setError('NIP incorrecto o expirado. Verifica e intenta de nuevo.');
+      setError('No pudimos autorizar la consulta. Verifica tu NIP e intenta de nuevo.');
       setStatus('ready');
     }
   }
@@ -249,7 +283,7 @@ export function StepBuroNip({
             <p className="small muted buro-step__subtitle">
               {status === 'requesting'
                 ? 'Solicitando NIP a Buró…'
-                : message || 'Hemos enviado un código de 6 dígitos a tu WhatsApp.'}
+                : message || DEFAULT_NIP_MESSAGE}
             </p>
             {phoneLabel ? (
               <p className="buro-step__phone">
@@ -273,7 +307,7 @@ export function StepBuroNip({
                 type="button"
                 className="buro-step__resend-btn"
                 onClick={handleResend}
-                disabled={busy}
+                disabled={busy || !serverState.workflooId}
               >
                 Reenviar código
               </button>
@@ -311,7 +345,10 @@ export function StepBuroNip({
           <button
             type="button"
             className="buro-step__change small"
-            onClick={() => onPhaseChange('enter')}
+            onClick={() => {
+              setNipConfirmed(false);
+              onPhaseChange('enter');
+            }}
           >
             Cambiar código
           </button>

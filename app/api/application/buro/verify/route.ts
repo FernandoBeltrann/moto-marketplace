@@ -1,10 +1,7 @@
 /**
- * Verifica el NIP. Spec Finva:
- *   1) /validate_nip_kiban → phase: VALIDATE_2 (NIP correcto)
- *   2) /validate_nip_kiban (mismo NIP) → phase: VALIDATED (autorizado)
- *   3) /get_bc_kiban/{cliente_id} → genera reporte y devuelve report_id + score
- *
- * En dev sin Finva acepta cualquier 6 dígitos y devuelve datos dummy.
+ * Verifica el NIP en dos pasos (UI wizard):
+ *   - `step: 'confirm'`  → un solo `/validate_nip_kiban` (botón Continuar)
+ *   - `step: 'authorize'` → segundo `/validate_nip_kiban` + `/get_bc_kiban` (Autorizar)
  */
 import { NextRequest } from 'next/server';
 import { isValidNip } from '@/lib/credit-application/validation';
@@ -21,6 +18,7 @@ import type { CreditApplicationServerState } from '@/types/credit-application';
 type Body = {
   serverState: CreditApplicationServerState;
   nip: string;
+  step?: 'confirm' | 'authorize';
 };
 
 export async function POST(req: NextRequest) {
@@ -33,8 +31,19 @@ export async function POST(req: NextRequest) {
   if (!body?.serverState?.applicationId) return stubError('serverState.applicationId requerido');
   if (!isValidNip(body.nip ?? '')) return stubError('NIP debe ser 6 dígitos');
 
+  const step = body.step ?? 'authorize';
+
   if (!isFinvaConfigured()) {
-    logApplicationPayload('buro/verify (stub)', { applicationId: body.serverState.applicationId });
+    logApplicationPayload('buro/verify (stub)', {
+      applicationId: body.serverState.applicationId,
+      step,
+    });
+    if (step === 'confirm') {
+      return stubOk({
+        serverState: mergeServerState(body.serverState, {}),
+        phase: 'VALIDATE_2',
+      });
+    }
     return stubOk({
       serverState: mergeServerState(body.serverState, { reportId: 0 }),
       reportId: 0,
@@ -46,43 +55,53 @@ export async function POST(req: NextRequest) {
   if (!body.serverState.workflooId) return stubError('Falta workflooId — solicita NIP primero.');
   if (!body.serverState.clienteId) return stubError('Falta clienteId.');
 
-  // Paso 1: VALIDATE_2
-  const first = await validateNipKiban({ workflooId: body.serverState.workflooId, nip: body.nip });
-  if (!first.ok)
-    return stubError(first.error || 'NIP incorrecto', first.status || 400, {
-      label: 'buro/verify validate#1',
-      details: first.details,
-    });
-  const firstPhase = unwrapKiban(first.data).phase;
+  const workflooId = body.serverState.workflooId;
+  const clienteId = body.serverState.clienteId;
 
-  // Si ya viene VALIDATED, podemos saltar el segundo. Si no, autorizamos.
-  if (firstPhase !== 'VALIDATED') {
-    const second = await validateNipKiban({
-      workflooId: body.serverState.workflooId,
-      nip: body.nip,
-    });
-    if (!second.ok)
-      return stubError(
-        second.error || 'No pudimos autorizar la consulta',
-        second.status || 400,
-        { label: 'buro/verify validate#2', details: second.details }
-      );
-    const secondPhase = unwrapKiban(second.data).phase;
-    if (secondPhase !== 'VALIDATED') {
-      return stubError('La autorización no quedó en estado VALIDATED', 422, {
-        label: 'buro/verify validate#2',
-        details: unwrapKiban(second.data),
+  if (step === 'confirm') {
+    const first = await validateNipKiban({ workflooId, nip: body.nip });
+    if (!first.ok) {
+      return stubError(first.error || 'NIP incorrecto', first.status || 400, {
+        label: 'buro/verify validate#1',
+        details: first.details,
       });
     }
+    const phase = unwrapKiban(first.data).phase;
+    if (phase !== 'VALIDATE_2' && phase !== 'VALIDATED') {
+      return stubError('NIP incorrecto o expirado', 400, {
+        label: 'buro/verify validate#1',
+        details: unwrapKiban(first.data),
+      });
+    }
+    return stubOk({
+      serverState: mergeServerState(body.serverState, {}),
+      phase,
+    });
   }
 
-  // Paso 2: pull BC
-  const bc = await getBcKiban(body.serverState.clienteId, body.serverState.workflooId);
-  if (!bc.ok)
+  // authorize: segundo validate (si hace falta) y luego reporte BC.
+  const auth = await validateNipKiban({ workflooId, nip: body.nip });
+  if (!auth.ok) {
+    return stubError(auth.error || 'No pudimos autorizar la consulta', auth.status || 400, {
+      label: 'buro/verify validate#2',
+      details: auth.details,
+    });
+  }
+  const authPhase = unwrapKiban(auth.data).phase;
+  if (authPhase !== 'VALIDATED') {
+    return stubError('La autorización no quedó en estado VALIDATED', 422, {
+      label: 'buro/verify validate#2',
+      details: unwrapKiban(auth.data),
+    });
+  }
+
+  const bc = await getBcKiban(clienteId, workflooId);
+  if (!bc.ok) {
     return stubError(bc.error || 'No pudimos obtener el reporte de Buró', bc.status || 502, {
       label: 'buro/verify get_bc',
       details: bc.details,
     });
+  }
 
   const nextState = mergeServerState(body.serverState, {
     reportId: bc.data.report_id ?? null,

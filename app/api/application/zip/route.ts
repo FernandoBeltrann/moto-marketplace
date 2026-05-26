@@ -19,6 +19,10 @@ export async function GET(req: NextRequest) {
 
   const res = await getNeighborhoods(zip);
   if (!res.ok) {
+    // CP válido pero sin catálogo en Finva: la UI cae a colonia/ciudad/estado manual.
+    if (res.status === 404) {
+      return stubOk({ zip, ciudad: '', estado: '', neighborhoods: [] as string[] });
+    }
     return stubError(res.error || 'No pudimos consultar tu código postal', res.status || 502, {
       label: 'zip get_neighborhoods',
       details: res.details,

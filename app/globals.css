@@ -465,6 +465,12 @@ p { color: var(--muted); line-height: 1.6; }
   transition: background-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 .purchase-tabs__btn:hover { color: var(--text); }
+.purchase-tabs__btn--disabled,
+.purchase-tabs__btn--disabled:hover {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: .62;
+}
 .purchase-tabs__btn[aria-selected="true"] {
   background: var(--surface);
   color: var(--text);
@@ -474,6 +480,18 @@ p { color: var(--muted); line-height: 1.6; }
   font-size: 14px;
   font-weight: 800;
   letter-spacing: -.005em;
+}
+.purchase-tabs__soon {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--green-dark);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 .purchase-tabs__btn-sub {
   font-size: 12px;
@@ -767,7 +785,14 @@ p { color: var(--muted); line-height: 1.6; }
 .credit-wizard .wizard-progress__fill { height: 100%; background: var(--green); border-radius: 999px; transition: width .25s ease; }
 .credit-wizard .wizard-progress__title { margin: 14px 0 6px; font-size: 20px; }
 .credit-wizard .wizard-form { display: grid; gap: 14px; }
+.credit-wizard .wizard-field { display: grid; gap: 6px; }
+.credit-wizard .wizard-field__label--error { color: #b42318; }
+.credit-wizard .wizard-field__error { color: #b42318; margin: 0; }
+.credit-wizard .wizard-field--has-error .input,
+.credit-wizard .wizard-field--has-error .select { border-color: #b42318; }
 .credit-wizard .wizard-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.credit-wizard .wizard-row--equal { grid-template-columns: 1fr 1fr; align-items: stretch; }
+.credit-wizard .wizard-row--equal .btn { width: 100%; }
 .credit-wizard .wizard-address-grid,
 .credit-wizard .wizard-identity-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .credit-wizard .wizard-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
@@ -897,6 +922,7 @@ p { color: var(--muted); line-height: 1.6; }
   .credit-wizard .wizard-address-grid,
   .credit-wizard .wizard-identity-grid { grid-template-columns: 1fr; }
   .credit-wizard .wizard-row { grid-template-columns: 1fr; }
+  .credit-wizard .wizard-row--equal { grid-template-columns: 1fr 1fr; }
 }
 .moto-reviews { border-top: 1px solid var(--line); margin-top: 8px; padding-bottom: 48px; }
 .moto-reviews-head { margin-bottom: 22px; }

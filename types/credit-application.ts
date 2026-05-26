@@ -66,9 +66,8 @@ export type CreditHistoryOption = (typeof CREDIT_HISTORY_OPTIONS)[number];
 export type GuarantorOption = 'Si' | 'NO';
 
 /**
- * Empleo + 5 preguntas clave (Diego). Se persisten en el cliente Finva como
- * `profesion`, `income_source_type`, `income_proof`, `monthly_income`,
- * `client_credit_history_description`, `possible_guarantor`.
+ * Empleo + 5 preguntas clave (Diego). `role` → `profesion` en PUT `/cliente`;
+ * el resto de las preguntas va en `/add_solicitud` al crear la solicitud.
  */
 export type EmploymentData = {
   company: string;

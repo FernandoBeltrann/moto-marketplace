@@ -175,6 +175,8 @@ export type BuroRequestResponse = StateBag & {
   message?: string;
   /** Si `nipType === 'email'` el cliente debería sugerir corregir el teléfono. */
   nipType?: string;
+  /** Cuando el workfloo en Kiban ya terminó y el BC ya existe. */
+  reportId?: number;
 };
 
 export function requestBuroNip(
@@ -206,10 +208,15 @@ export type BuroVerifyResponse = StateBag & {
   reportId?: number;
   valorScore?: number | null;
   clasificacion?: string | null;
+  phase?: string;
 };
 
-export function verifyBuroNip(serverState: CreditApplicationServerState, nip: string) {
-  return post<BuroVerifyResponse>('/api/application/buro/verify', { serverState, nip });
+export function verifyBuroNip(
+  serverState: CreditApplicationServerState,
+  nip: string,
+  step: 'confirm' | 'authorize'
+) {
+  return post<BuroVerifyResponse>('/api/application/buro/verify', { serverState, nip, step });
 }
 
 export type SubmitSolicitudResponse = StateBag & {

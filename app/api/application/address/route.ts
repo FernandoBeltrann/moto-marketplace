@@ -19,7 +19,9 @@ import {
 } from '@/lib/credit-application/server';
 import {
   createCliente,
+  getHolding,
   getNeighborhoods,
+  getNextFinvaUser,
   getNextUser,
   unwrapNeighborhoods,
   updateCliente,
@@ -55,9 +57,11 @@ function buildClientePayload(input: {
   address: AddressData;
   ciudad?: string;
   estado?: string;
-  serverState: CreditApplicationServerState;
+  /** Ambos ID son obligatorios — el caller debe garantizarlos antes de llamar. */
+  userId: number;
+  finvaUserId: number;
 }): FinvaCliente {
-  const { contact, identity, address, ciudad, estado, serverState } = input;
+  const { contact, identity, address, ciudad, estado, userId, finvaUserId } = input;
   const phone = normalizeMxPhone(contact.phone);
   const fullAddress = [address.street, address.exteriorNumber, address.interiorNumber]
     .filter(Boolean)
@@ -83,8 +87,11 @@ function buildClientePayload(input: {
     suburb_colonia: address.neighborhood,
     street_address: fullAddress.trim(),
     interior_number: address.interiorNumber || undefined,
-    user_id: serverState.userId ?? null,
-    finva_user_id: serverState.finvaUserId ?? null,
+    // CRÍTICO: estos dos IDs vinculan al cliente con la sucursal/asesor de
+    // Motoclick en Finva. Sin ellos las solicitudes quedan huérfanas y no
+    // entran al pipeline del asesor. Los validamos antes de armar el payload.
+    user_id: userId,
+    finva_user_id: finvaUserId,
     flow_process: 'onCreditWeb',
   };
 }
@@ -165,13 +172,41 @@ export async function POST(req: NextRequest) {
       if (advisor.ok && advisor.data?.id) userId = advisor.data.id;
     }
 
+    // ── Garantizar finva_user_id (asesor del holding) ────────────────────────
+    // Si el probe no logró asignarlo, intentamos UNA vez más antes de fallar
+    // duro. El cliente Finva (create/update) lo necesita SIEMPRE para que la
+    // futura solicitud quede vinculada al asesor correcto en el pipeline.
+    let finvaUserId: number | null = body.serverState.finvaUserId ?? null;
+    if (!finvaUserId) {
+      const advisor = await getNextFinvaUser({ holdingStore: getHolding() });
+      if (advisor.ok && advisor.data?.id) finvaUserId = advisor.data.id;
+    }
+
+    // ── Validación dura: ambos IDs son obligatorios antes de tocar /cliente ──
+    if (!finvaUserId) {
+      return stubError(
+        'No pudimos asignarte un asesor Finva (finva_user_id). Reintenta en unos segundos.',
+        503,
+        { label: 'address ensure_ids', details: { finvaUserId, userId, storeId } }
+      );
+    }
+    if (!userId) {
+      return stubError(
+        'No pudimos asignarte un asesor de tienda (user_id). Verifica que haya ' +
+          'sucursales disponibles para tu zona y reintenta.',
+        503,
+        { label: 'address ensure_ids', details: { finvaUserId, userId, storeId } }
+      );
+    }
+
     const clientePayload = buildClientePayload({
       contact: body.contact,
       identity: body.identity,
       address: body.address,
       ciudad,
       estado,
-      serverState: { ...body.serverState, userId, storeId },
+      userId,
+      finvaUserId,
     });
 
     if (clienteId) {
@@ -179,10 +214,11 @@ export async function POST(req: NextRequest) {
       // de pasar a NIP/buró. Antes ignorábamos el error y el `/send_nip_kiban`
       // recibía un cliente con datos viejos/incompletos (e.g. sin RFC) y
       // fallaba con `rfc_pf` empty. Ahora propagamos el error.
-
-      // remove finva_user_id and flow_process from clientePayload
-      delete clientePayload.finva_user_id;
-      delete clientePayload.flow_process;
+      //
+      // Nota: en el PUT mandamos user_id Y finva_user_id explícitamente para
+      // que un cliente ya existente quede REASIGNADO al asesor/sucursal de
+      // Motoclick en este flujo (antes los borrábamos del payload y se
+      // perdía la vinculación cuando el cliente venía de otro holding).
       const updated = await updateCliente(clienteId, clientePayload);
       if (!updated.ok) {
         return stubError(
@@ -202,6 +238,10 @@ export async function POST(req: NextRequest) {
       }
       clienteId = extractClienteId(created.data);
     }
+
+    // Persistimos el finva_user_id que efectivamente quedó vinculado para que
+    // los siguientes pasos (employment, buró, submit) lo reusen.
+    body.serverState = { ...body.serverState, finvaUserId };
   } else {
     logApplicationPayload('address (stub)', body);
   }
@@ -210,6 +250,9 @@ export async function POST(req: NextRequest) {
     storeId,
     userId,
     clienteId,
+    // body.serverState ya quedó actualizado con finvaUserId arriba; lo
+    // re-aplicamos aquí explícitamente para no depender del orden de merge.
+    finvaUserId: body.serverState.finvaUserId ?? null,
   });
 
   return stubOk({

@@ -360,7 +360,7 @@ async function saveAddress(
 }
 
 async function saveEmployment(serverState: ServerState): Promise<ServerState> {
-  header('save employment + key questions (PUT /cliente)');
+  header('save employment (PUT /cliente profesion)');
   const emp = await call<StateBag>('POST', '/api/application/employment', {
     serverState,
     employment: employmentFixture,
@@ -451,11 +451,19 @@ async function runBuroLoop(
     info('SKIP_CHANGE_PHONE=1 → salto cambio de teléfono');
   }
 
-  // Verify
-  header(`buro/verify NIP=${NIP}`);
+  header(`buro/verify confirm NIP=${NIP}`);
+  await call<BuroVer>('POST', '/api/application/buro/verify', {
+    serverState,
+    nip: NIP,
+    step: 'confirm',
+  });
+  pass('NIP confirmado (validate #1)');
+
+  header(`buro/verify authorize + get_bc NIP=${NIP}`);
   const ver = await call<BuroVer>('POST', '/api/application/buro/verify', {
     serverState,
     nip: NIP,
+    step: 'authorize',
   });
   serverState = ver.serverState;
   pass(
