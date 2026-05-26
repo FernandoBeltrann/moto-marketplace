@@ -1,3 +1,14 @@
+/**
+ * Analytics centralizado.
+ *
+ * - `track()` → PostHog, Meta Pixel, gtag (eventos legacy internos; sin cambios).
+ * - `trackApplication*` → dataLayer, eventos nuevos de conversión para GTM/Ads.
+ *
+ * Eventos GTM ya configurados (view_motorcycle, calculator_interaction, filter_catalog)
+ * viven en lib/gtm.ts — no moverlos aquí.
+ */
+type AnalyticsEventPayload = Record<string, string | number | boolean | null | undefined>;
+
 export type AnalyticsEvent =
   | 'view_home'
   | 'view_catalog'
@@ -20,12 +31,76 @@ export type AnalyticsEvent =
 
 declare global {
   interface Window {
+    dataLayer?: AnalyticsEventPayload[];
     fbq?: (...args: unknown[]) => void;
     ttq?: { track: (...args: unknown[]) => void };
     gtag?: (...args: unknown[]) => void;
   }
 }
 
+function pushEvent(event: string, payload: AnalyticsEventPayload = {}) {
+  if (typeof window === 'undefined') return;
+
+  window.dataLayer = window.dataLayer || [];
+
+  const data = { event, ...payload };
+  window.dataLayer.push(data);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[MotoClick analytics]', data);
+  }
+}
+
+export function trackApplicationStarted(params: {
+  motorcycleSlug?: string;
+  motorcycleBrand?: string;
+  motorcycleModel?: string;
+  city?: string;
+}) {
+  pushEvent('application_started', {
+    motorcycle_slug: params.motorcycleSlug,
+    motorcycle_brand: params.motorcycleBrand,
+    motorcycle_model: params.motorcycleModel,
+    city: params.city,
+  });
+}
+
+export function trackApplicationCompleted(params: {
+  leadId?: string;
+  motorcycleSlug?: string;
+  motorcycleBrand?: string;
+  motorcycleModel?: string;
+  city?: string;
+  value?: number;
+}) {
+  pushEvent('application_completed', {
+    lead_id: params.leadId,
+    motorcycle_slug: params.motorcycleSlug,
+    motorcycle_brand: params.motorcycleBrand,
+    motorcycle_model: params.motorcycleModel,
+    city: params.city,
+    value: params.value ?? 1,
+    currency: 'MXN',
+  });
+}
+
+export function trackWhatsappClicked(params: {
+  motorcycleSlug?: string;
+  motorcycleBrand?: string;
+  motorcycleModel?: string;
+  sourcePage?: string;
+  city?: string;
+}) {
+  pushEvent('whatsapp_clicked', {
+    motorcycle_slug: params.motorcycleSlug,
+    motorcycle_brand: params.motorcycleBrand,
+    motorcycle_model: params.motorcycleModel,
+    source_page: params.sourcePage,
+    city: params.city,
+  });
+}
+
+/** PostHog / Meta / gtag — sin cambios respecto al setup anterior. */
 export function track(event: AnalyticsEvent, properties: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('marketplace:event', { detail: { event, properties } }));

@@ -99,12 +99,20 @@ export function PurchaseModule({
           price={price}
           suggestedDownPayment={suggestedDownPayment}
           motorcycleId={motorcycle.id}
+          motorcycleSlug={motorcycle.slug}
           motorcycleName={motorcycle.name}
           motorcycleBrand={motorcycle.brand}
           motorcycleModel={motorcycle.model}
           motorcycleYear={motorcycle.year}
           finvaMotorcycleId={motorcycle.finvaMotorcycleId}
           purchaseUrl={purchaseUrl}
+          motorcycle={{
+            slug: motorcycle.slug,
+            brand: motorcycle.brand,
+            model: motorcycle.model,
+            year: motorcycle.year,
+            price,
+          }}
         />
       </div>
 

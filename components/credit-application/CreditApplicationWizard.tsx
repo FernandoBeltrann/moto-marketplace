@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CreditApplicationFormData,
   CreditApplicationServerState,
@@ -25,7 +25,7 @@ import {
   loadCreditAppState,
   saveCreditAppState,
 } from '@/lib/credit-application/storage';
-import { track } from '@/lib/analytics';
+import { track, trackApplicationCompleted } from '@/lib/analytics';
 import { WizardProgress } from './WizardProgress';
 import { WizardLoadingOverlay } from './WizardLoadingOverlay';
 import { StepContact } from './steps/StepContact';
@@ -67,6 +67,7 @@ function identifyPostHog(phone: string, email: string) {
 
 export function CreditApplicationWizard({
   motorcycleId,
+  motorcycleSlug,
   motorcycleName,
   motorcycleBrand,
   motorcycleModel,
@@ -77,6 +78,7 @@ export function CreditApplicationWizard({
   onCancel,
 }: {
   motorcycleId: string;
+  motorcycleSlug: string;
   motorcycleName: string;
   motorcycleBrand: string;
   motorcycleModel: string;
@@ -117,8 +119,23 @@ export function CreditApplicationWizard({
   const [buroBusy, setBuroBusy] = useState(false);
   const [buroBusyMessage, setBuroBusyMessage] = useState<string>('');
   const [zipLookupBusy, setZipLookupBusy] = useState(false);
+  const completedTracked = useRef(false);
 
   const applicationId = serverState?.applicationId ?? null;
+  const motorcycleModelLabel = `${motorcycleModel} ${motorcycleYear}`;
+
+  function markApplicationCompleted(solicitudId: number | string) {
+    if (completedTracked.current) return;
+    completedTracked.current = true;
+    trackApplicationCompleted({
+      leadId: String(solicitudId),
+      motorcycleSlug,
+      motorcycleBrand,
+      motorcycleModel: motorcycleModelLabel,
+      city: form.address?.ciudad,
+      value: 1,
+    });
+  }
 
   useEffect(() => {
     saveCreditAppState({
@@ -335,6 +352,7 @@ export function CreditApplicationWizard({
             alreadyExisted: sol.alreadyExisted ?? false,
             shortcut: 'with_report',
           });
+          markApplicationCompleted(sol.solicitudId);
           setStep(6);
           return;
         } catch (shortcutErr) {
@@ -403,6 +421,7 @@ export function CreditApplicationWizard({
         value: motorcyclePrice,
         alreadyExisted: res.alreadyExisted ?? false,
       });
+      markApplicationCompleted(res.solicitudId);
       setStep(6);
     } catch (err) {
       setInitError(
@@ -503,11 +522,15 @@ export function CreditApplicationWizard({
       {step === 6 && serverState?.solicitudId ? (
         <StepOffer
           motorcycleId={motorcycleId}
+          motorcycleSlug={motorcycleSlug}
+          motorcycleBrand={motorcycleBrand}
+          motorcycleModel={motorcycleModelLabel}
           motorcycleName={motorcycleName}
           motorcyclePrice={motorcyclePrice}
           solicitudId={serverState.solicitudId}
           agentName={serverState.agentName ?? undefined}
           agentPhone={serverState.agentPhone ?? undefined}
+          city={form.address?.ciudad}
           quote={quote}
         />
       ) : null}
