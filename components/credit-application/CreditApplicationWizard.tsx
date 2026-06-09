@@ -25,7 +25,9 @@ import {
   loadCreditAppState,
   saveCreditAppState,
 } from '@/lib/credit-application/storage';
+import posthog from 'posthog-js';
 import { track, trackApplicationCompleted } from '@/lib/analytics';
+import { posthogProjectToken } from '@/lib/posthog-env';
 import { WizardProgress } from './WizardProgress';
 import { WizardLoadingOverlay } from './WizardLoadingOverlay';
 import { StepContact } from './steps/StepContact';
@@ -50,19 +52,12 @@ function contactChanged(prev: ContactData | undefined, next: ContactData): boole
 }
 
 function identifyPostHog(phone: string, email: string) {
-  if (typeof window === 'undefined') return;
-  if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim()) return;
-  void import('posthog-js')
-    .then(({ default: posthog }) => {
-      try {
-        posthog.identify(phone, { email, phone });
-      } catch {
-        /* noop */
-      }
-    })
-    .catch(() => {
-      /* fetch / chunk fallido */
-    });
+  if (typeof window === 'undefined' || !posthogProjectToken()) return;
+  try {
+    posthog.identify(phone, { email, phone });
+  } catch {
+    /* PostHog no inicializado o red bloqueada */
+  }
 }
 
 export function CreditApplicationWizard({
