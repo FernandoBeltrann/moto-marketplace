@@ -1,11 +1,18 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import Link from 'next/link';
 import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
 import { GoogleTag } from '@/components/GoogleTag';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
+import { PostHogInit } from '@/components/PostHogInit';
 import { site } from '@/lib/site';
+
+const posthogToken =
+  process.env.POSTHOG_PROJECT_TOKEN?.trim() ||
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim() ||
+  '';
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -26,6 +33,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-MX">
       <body>
+        {posthogToken ? (
+          <Script
+            id="posthog-token"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `window.__POSTHOG_TOKEN__=${JSON.stringify(posthogToken)};`,
+            }}
+          />
+        ) : null}
+        <PostHogInit />
         <GoogleTagManager />
         <GoogleTag />
         <MetaPixel />

@@ -7,6 +7,9 @@
  * Eventos GTM ya configurados (view_motorcycle, calculator_interaction, filter_catalog)
  * viven en lib/gtm.ts — no moverlos aquí.
  */
+import posthog from 'posthog-js';
+import { posthogProjectToken } from '@/lib/posthog-env';
+
 type AnalyticsEventPayload = Record<string, string | number | boolean | null | undefined>;
 
 export type AnalyticsEvent =
@@ -107,16 +110,10 @@ export function track(event: AnalyticsEvent, properties: Record<string, unknown>
   window.fbq?.('trackCustom', event, properties);
   window.ttq?.track(event, properties);
   window.gtag?.('event', event, properties);
-  if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim()) return;
-  void import('posthog-js')
-    .then(({ default: posthog }) => {
-      try {
-        posthog.capture(event, properties);
-      } catch {
-        /* no-op */
-      }
-    })
-    .catch(() => {
-      /* fetch / chunk fallido: no romper UX */
-    });
+  if (!posthogProjectToken()) return;
+  try {
+    posthog.capture(event, properties);
+  } catch {
+    /* PostHog no inicializado o red bloqueada */
+  }
 }
