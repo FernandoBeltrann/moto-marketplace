@@ -182,22 +182,11 @@ export async function POST(req: NextRequest) {
       if (advisor.ok && advisor.data?.id) finvaUserId = advisor.data.id;
     }
 
-    // ── Validación dura: ambos IDs son obligatorios antes de tocar /cliente ──
-    if (!finvaUserId) {
-      return stubError(
-        'No pudimos asignarte un asesor Finva (finva_user_id). Reintenta en unos segundos.',
-        503,
-        { label: 'address ensure_ids', details: { finvaUserId, userId, storeId } }
-      );
-    }
-    if (!userId) {
-      return stubError(
-        'No pudimos asignarte un asesor de tienda (user_id). Verifica que haya ' +
-          'sucursales disponibles para tu zona y reintenta.',
-        503,
-        { label: 'address ensure_ids', details: { finvaUserId, userId, storeId } }
-      );
-    }
+    // ── Fallbacks: nunca bloqueamos por falta de asesor ──────────────────────
+    // Si no hay finva_user_id, usamos 6 como asesor por defecto. Si no hay
+    // user_id (asesor de tienda), reusamos el finva_user_id resuelto.
+    if (!finvaUserId) finvaUserId = 6;
+    if (!userId) userId = finvaUserId;
 
     const clientePayload = buildClientePayload({
       contact: body.contact,
