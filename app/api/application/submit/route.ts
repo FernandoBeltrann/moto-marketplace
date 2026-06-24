@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     year_motorcycle: String(body.motorcycleYear),
     invoice_motorcycle_value: body.motorcyclePrice,
     percentage_down_payment: downPaymentPct,
-    payment_method: 'credit',
+    payment_method: 'loan',
     preferred_store_id: body.serverState.storeId ?? null,
     holding_page_url: holding,
     parent_solicitud_id: parentSolicitudId,
