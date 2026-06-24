@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
   }
 
   const downPaymentPct =
-    body.quote.price > 0 ? Math.round((body.quote.downPayment / body.quote.price) * 1000) / 10 : 0;
+    body.quote.price > 0 ? Math.round((body.quote.downPayment / body.quote.price) * 10000) / 10000 : 0;
 
   const payload: FinvaAddSolicitudPayload = {
     cliente_id: clienteId,

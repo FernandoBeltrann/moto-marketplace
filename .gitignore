@@ -10,3 +10,6 @@ leads.local.json
 .cursor/
 .agents/
 skills-lock.json
+
+# Markdwons and local documentation
+docs/
