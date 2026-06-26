@@ -174,6 +174,7 @@ export async function POST(req: NextRequest) {
     percentage_down_payment: downPaymentPct,
     payment_method: 'loan',
     registration_process: 'onCreditWeb',
+    finance_term_months: `${Number(body.quote.months)} meses`,
     preferred_store_id: body.serverState.storeId ?? null,
     holding_page_url: holding,
     parent_solicitud_id: parentSolicitudId,

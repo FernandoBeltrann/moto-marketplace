@@ -144,6 +144,7 @@ export type FinvaSolicitud = {
   year_motorcycle?: string;
   invoice_motorcycle_value?: number;
   percentage_down_payment?: number;
+  finance_term_months?: string;
   payment_method?: 'loan' | 'cash' | string;
   registration_process?: 'onCreditWeb' | string;
   preferred_store_id?: number | null;
