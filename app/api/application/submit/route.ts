@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
     invoice_motorcycle_value: body.motorcyclePrice,
     percentage_down_payment: downPaymentPct,
     payment_method: 'loan',
+    registration_process: 'onCreditWeb',
     preferred_store_id: body.serverState.storeId ?? null,
     holding_page_url: holding,
     parent_solicitud_id: parentSolicitudId,
