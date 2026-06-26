@@ -1037,3 +1037,20 @@ p { color: var(--muted); line-height: 1.6; }
   .hero { padding-top: 42px; }
 }
 
+/* ── Página embebible (iframe): solo el flujo de solicitud de crédito ── */
+.embed-credit { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 16px; background: transparent; }
+.embed-credit__inner { width: 100%; max-width: 520px; }
+.embed-credit .credit-wizard { margin-top: 0; }
+
+/* Selector de moto + cotización embebido */
+.embed-flow { display: grid; gap: 14px; }
+/* Dentro del iframe el calculador no debe ir a borde completo: le devolvemos
+   la tarjeta (padding/borde) para que coincida con el selector y el wizard. */
+.embed-credit .calculator--flush { margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 22px; }
+.embed-flow__picker { background: white; border: 1px solid var(--line); border-radius: 22px; padding: 16px; display: grid; gap: 8px; }
+.embed-flow__picker .select { width: 100%; }
+.embed-flow__selected { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.embed-flow__thumb { border-radius: 12px; object-fit: cover; background: var(--soft); }
+.embed-flow__selected-meta { display: grid; gap: 2px; }
+.embed-flow__hint { margin-top: 14px; }
+
