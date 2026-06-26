@@ -560,7 +560,7 @@ export function CreditApplicationWizard({
               : step === 5 && buroPhase === 'authorize'
                 ? buroBusy
                   ? 'Autorizando…'
-                  : 'Autorizar consulta'
+                  : 'Enviar solicitud'
                 : 'Continuar'}
           </button>
         </div>
