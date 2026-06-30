@@ -147,6 +147,7 @@ export type FinvaSolicitud = {
   finance_term_months?: string;
   payment_method?: 'loan' | 'cash' | string;
   registration_process?: 'onCreditWeb' | string;
+  flow_process?: 'onCreditWeb' | string;
   preferred_store_id?: number | null;
   credit_preference?: 'price' | 'speed' | null;
   holding_page_url?: string;
