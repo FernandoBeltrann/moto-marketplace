@@ -115,6 +115,14 @@ export function CreditApplicationWizard({
   const [buroBusyMessage, setBuroBusyMessage] = useState<string>('');
   const [zipLookupBusy, setZipLookupBusy] = useState(false);
   const completedTracked = useRef(false);
+  /**
+   * Evita dar de alta la solicitud dos veces. `StepBuroNip` puede disparar
+   * `onVerified` más de una vez en un mismo flujo (la autorización llama a
+   * `onVerified`, y al fijar `reportId` en el serverState el efecto de
+   * StepBuroNip vuelve a correr y lo dispara otra vez). Sólo debemos registrar
+   * la solicitud una vez.
+   */
+  const solicitudSubmittedRef = useRef(false);
 
   const applicationId = serverState?.applicationId ?? null;
   const motorcycleModelLabel = `${motorcycleModel} ${motorcycleYear}`;
@@ -194,6 +202,8 @@ export function CreditApplicationWizard({
     setForm({});
     setNeighborhoodOptions([]);
     setBuroPhase('enter');
+    solicitudSubmittedRef.current = false;
+    completedTracked.current = false;
     track('credit_app_contact_reset', { motorcycleId });
   }
 
@@ -323,7 +333,12 @@ export function CreditApplicationWizard({
       // pull de buró: creamos la solicitud directamente con el reportId que ya
       // tiene Finva y vamos al paso 6.
       if (nextServerState.resolution === 'with_report' && nextServerState.reportId) {
+        if (solicitudSubmittedRef.current) {
+          setStep(6);
+          return;
+        }
         setLoadingMessage('Generando tu solicitud…');
+        solicitudSubmittedRef.current = true;
         try {
           const sol = await submitSolicitud({
             serverState: nextServerState,
@@ -351,7 +366,9 @@ export function CreditApplicationWizard({
           setStep(6);
           return;
         } catch (shortcutErr) {
-          // Si falla el atajo, dejamos que el usuario siga el flujo normal.
+          // Si falla el atajo, dejamos que el usuario siga el flujo normal y
+          // liberamos el guard para que el alta pueda reintentarse en el buró.
+          solicitudSubmittedRef.current = false;
           console.warn('[wizard] with_report shortcut failed, falling back:', shortcutErr);
         }
       }
@@ -381,25 +398,40 @@ export function CreditApplicationWizard({
     }
   }
 
-  async function handleBuroVerified() {
+  async function handleBuroVerified(verifyResult?: { reportId?: number }) {
     if (!serverState) {
       setInitError('Faltan datos para registrar tu solicitud.');
       return;
     }
+    // Idempotencia: si ya estamos registrando (o registramos) la solicitud en
+    // este flujo, ignoramos disparos duplicados de `onVerified`.
+    if (solicitudSubmittedRef.current) return;
+
+    // Usamos el `reportId` recién devuelto por la verificación. El `serverState`
+    // del closure puede ir desfasado (setServerState es asíncrono), y mandar
+    // `report_id: null` provoca que Finva rechace la solicitud
+    // ("report_id: Field may not be null.").
+    const reportId = verifyResult?.reportId ?? serverState.reportId ?? null;
+    const stateForSubmit: CreditApplicationServerState = reportId
+      ? { ...serverState, reportId }
+      : serverState;
+
     // El empleo sólo es obligatorio si NO traemos un reportId existente.
     // El backend ya impone esta misma regla en /api/application/submit; aquí la
     // replicamos para no llamar en balde cuando obviamente falta info.
-    const hasExistingReport = Boolean(serverState.reportId);
+    const hasExistingReport = Boolean(stateForSubmit.reportId);
     if (!hasExistingReport && !form.employment) {
       setInitError('Faltan datos de empleo para registrar tu solicitud.');
       return;
     }
+
+    solicitudSubmittedRef.current = true;
     setLoading(true);
     setLoadingMessage('Generando tu solicitud…');
     setInitError('');
     try {
       const res = await submitSolicitud({
-        serverState,
+        serverState: stateForSubmit,
         motorcycleId,
         motorcycleBrand,
         motorcycleModel,
@@ -419,6 +451,8 @@ export function CreditApplicationWizard({
       markApplicationCompleted(res.solicitudId);
       setStep(6);
     } catch (err) {
+      // Falló el alta: permitimos reintento (el usuario puede reenviar).
+      solicitudSubmittedRef.current = false;
       setInitError(
         err instanceof Error ? err.message : 'No pudimos registrar tu solicitud. Intenta de nuevo.'
       );

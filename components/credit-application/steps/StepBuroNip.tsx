@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { requestBuroNip, verifyBuroNip } from '@/lib/credit-application/api';
+import { requestBuroNip, userFacingErrorMessage, verifyBuroNip } from '@/lib/credit-application/api';
 import { formatMxPhoneDisplay } from '@/lib/credit-application/phone';
 import { isValidNip } from '@/lib/credit-application/validation';
 import type {
@@ -130,9 +130,7 @@ export function StepBuroNip({
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error && err.message
-              ? err.message
-              : 'No pudimos solicitar el NIP. Intenta de nuevo.'
+            userFacingErrorMessage(err, 'No pudimos solicitar el NIP. Intenta de nuevo.')
           );
           setStatus('error');
         }
@@ -182,11 +180,7 @@ export function StepBuroNip({
       setStatus('ready');
       setResendIn(30);
     } catch (err) {
-      setError(
-        err instanceof Error && err.message
-          ? err.message
-          : 'No pudimos reenviar el NIP. Intenta de nuevo.'
-      );
+      setError(userFacingErrorMessage(err, 'No pudimos reenviar el NIP. Intenta de nuevo.'));
       setStatus('error');
     }
   }

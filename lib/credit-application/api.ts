@@ -29,6 +29,26 @@ export class CreditApplicationApiError extends Error {
   }
 }
 
+/**
+ * Códigos técnicos/opacos que el backend (o el cliente Finva) puede propagar
+ * como `error` cuando la API responde sin un mensaje legible: e.g. `finva_400`,
+ * `finva_network_error`, `Error 502`, `invalid_json`. No le dicen nada al usuario,
+ * así que los reemplazamos por un mensaje accionable antes de mostrarlos.
+ */
+const OPAQUE_ERROR_RE = /^(finva_(network_error|\d+)|error \d+|invalid_json|\d{3})\b/i;
+
+/**
+ * Devuelve un mensaje apto para mostrarle al usuario. Si el error es un código
+ * técnico opaco (como `finva_400`), usa el `fallback` en su lugar.
+ */
+export function userFacingErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) {
+    const message = err.message.trim();
+    if (message && !OPAQUE_ERROR_RE.test(message)) return message;
+  }
+  return fallback;
+}
+
 function buildError(path: string, res: Response, data: ApiResponse<unknown>): never {
   const base = data.error || `Error ${res.status}`;
   // En dev el servidor incluye `details`. Si trae un string corto, lo añadimos
