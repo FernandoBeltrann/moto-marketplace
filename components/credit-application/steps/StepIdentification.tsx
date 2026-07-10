@@ -102,6 +102,13 @@ export function StepIdentification({
             )}
           </button>
         </div>
+        <p className="small muted">
+          Si no conoces tu CURP{' '}
+          <a href="https://www.gob.mx/curp/" target="_blank" rel="noopener noreferrer">
+            calcúlalo aquí
+          </a>
+          .
+        </p>
       </WizardField>
 
       {identity ? (

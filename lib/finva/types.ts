@@ -49,12 +49,16 @@ export type FinvaStoresResponse = {
 
 export type FinvaAdvisor = {
   id: number;
+  uuid?: string;
   name?: string;
-  second_name?: string;
+  second_name?: string | null;
   first_last_name?: string;
-  second_last_name?: string;
+  second_last_name?: string | null;
   email?: string;
-  phone_number?: string;
+  zona_autoestrena_url?: string | null;
+  selected_at?: string | null;
+  role_id?: number;
+  phone_number?: string | null;
 };
 
 export type FinvaCliente = {

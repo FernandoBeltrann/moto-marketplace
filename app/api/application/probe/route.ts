@@ -28,6 +28,7 @@ import {
   stubOk,
 } from '@/lib/credit-application/server';
 import {
+  advisorToAgent,
   getHolding,
   getNextFinvaUser,
   unknownClient,
@@ -160,7 +161,14 @@ export async function POST(req: NextRequest) {
   let finvaUserId = serverState.finvaUserId ?? null;
   if (!finvaUserId) {
     const advisor = await getNextFinvaUser({ holdingStore: getHolding() });
-    if (advisor.ok && advisor.data?.id) finvaUserId = advisor.data.id;
+    if (advisor.ok && advisor.data?.id) {
+      finvaUserId = advisor.data.id;
+      const agent = advisorToAgent(advisor.data);
+      serverState = mergeServerState(serverState, {
+        agentName: agent.agentName,
+        agentPhone: agent.agentPhone,
+      });
+    }
   }
   serverState = mergeServerState(serverState, { finvaUserId });
 

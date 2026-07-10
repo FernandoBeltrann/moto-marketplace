@@ -15,7 +15,7 @@ import {
   stubError,
   stubOk,
 } from '@/lib/credit-application/server';
-import { getHolding, getNextFinvaUser, unknownClient } from '@/lib/finva/client';
+import { advisorToAgent, getHolding, getNextFinvaUser, unknownClient } from '@/lib/finva/client';
 import type { CreditApplicationServerState } from '@/types/credit-application';
 
 type StartBody = {
@@ -43,10 +43,20 @@ export async function POST(req: NextRequest) {
   const applicationId = randomUUID();
   const holding = getHolding();
   let finvaUserId: number | null = null;
+  let agentName: string | null = null;
+  let agentPhone: string | null = null;
 
   if (isFinvaConfigured()) {
     const advisor = await getNextFinvaUser({ holdingStore: holding });
-    if (advisor.ok && advisor.data?.id) finvaUserId = advisor.data.id;
+    if (advisor.ok && advisor.data?.id) {
+      finvaUserId = advisor.data.id;
+      // Guardamos el nombre/teléfono del asesor ya en la asignación: es la
+      // única respuesta que trae `phone_number` de forma fiable y así el paso 6
+      // (WhatsApp) no depende de que `get_advisor_details` lo devuelva.
+      const agent = advisorToAgent(advisor.data);
+      agentName = agent.agentName;
+      agentPhone = agent.agentPhone;
+    }
 
     await unknownClient({
       phone: '',
@@ -75,6 +85,8 @@ export async function POST(req: NextRequest) {
   const serverState: CreditApplicationServerState = {
     applicationId,
     finvaUserId,
+    agentName,
+    agentPhone,
   };
   return stubOk({ applicationId, serverState });
 }

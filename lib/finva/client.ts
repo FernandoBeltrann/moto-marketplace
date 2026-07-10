@@ -415,6 +415,22 @@ export function getAdvisorDetails(finvaUserId: number) {
   return request<FinvaAdvisor>(`/get_advisor_details/${finvaUserId}`);
 }
 
+/**
+ * Normaliza un asesor Finva (de `get_next_finva_user` o `get_advisor_details`)
+ * al par nombre/teléfono que consume el paso 6 (WhatsApp). Devuelve `null` en
+ * los campos que no vengan para poder aplicar fallbacks aguas arriba.
+ */
+export function advisorToAgent(
+  advisor: FinvaAdvisor | null | undefined
+): { agentName: string | null; agentPhone: string | null } {
+  if (!advisor) return { agentName: null, agentPhone: null };
+  const name = [advisor.name, advisor.first_last_name].filter(Boolean).join(' ').trim();
+  return {
+    agentName: name || null,
+    agentPhone: advisor.phone_number ?? null,
+  };
+}
+
 // ── Helpers para desempaquetar respuestas Kiban ──────────────────────────
 export function unwrapKiban(res: FinvaKibanResponse | { response: FinvaKibanResponse }): FinvaKibanResponse {
   if (res && typeof res === 'object' && 'response' in res && res.response) {

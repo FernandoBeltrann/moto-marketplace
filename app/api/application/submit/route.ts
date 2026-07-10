@@ -19,6 +19,7 @@ import {
 import { buildSolicitudEmploymentFields } from '@/lib/credit-application/employment-finva';
 import {
   addSolicitud,
+  advisorToAgent,
   getAdvisorDetails,
   getHolding,
   getNextFinvaUser,
@@ -64,15 +65,6 @@ function extractSolicitud(data: unknown): FinvaSolicitud | null {
   }
   if (typeof d.id === 'number') return d as unknown as FinvaSolicitud;
   return null;
-}
-
-function buildAgentResponse(advisor: { name?: string; first_last_name?: string; phone_number?: string } | undefined) {
-  if (!advisor) return { agentName: null, agentPhone: null };
-  const name = [advisor.name, advisor.first_last_name].filter(Boolean).join(' ').trim();
-  return {
-    agentName: name || null,
-    agentPhone: advisor.phone_number ?? null,
-  };
 }
 
 export async function POST(req: NextRequest) {
@@ -131,7 +123,13 @@ export async function POST(req: NextRequest) {
         sameMotoToday.finva_user_id && sameMotoToday.finva_user_id > 0
           ? await getAdvisorDetails(sameMotoToday.finva_user_id)
           : null;
-      const agent = buildAgentResponse(advisor?.ok ? advisor.data : undefined);
+      const detail = advisorToAgent(advisor?.ok ? advisor.data : undefined);
+      // Preferimos lo que devuelva el detalle, pero caemos al asesor capturado
+      // en la asignación (start/probe/address) para no perder el teléfono.
+      const agent = {
+        agentName: detail.agentName ?? body.serverState.agentName ?? null,
+        agentPhone: detail.agentPhone ?? body.serverState.agentPhone ?? null,
+      };
       return stubOk({
         serverState: mergeServerState(body.serverState, {
           solicitudId: sameMotoToday.id,
@@ -153,10 +151,20 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Asegurar finvaUserId vigente (si no lo tenemos en serverState).
+  // Semilla del asesor: lo capturado en la asignación previa (start/probe/address).
+  const agentSeed = {
+    agentName: body.serverState.agentName ?? null,
+    agentPhone: body.serverState.agentPhone ?? null,
+  };
   let finvaUserId = body.serverState.finvaUserId ?? null;
   if (!finvaUserId) {
     const nextFinva = await getNextFinvaUser({ client_id: clienteId, holdingStore: holding });
-    if (nextFinva.ok && nextFinva.data?.id) finvaUserId = nextFinva.data.id;
+    if (nextFinva.ok && nextFinva.data?.id) {
+      finvaUserId = nextFinva.data.id;
+      const a = advisorToAgent(nextFinva.data);
+      agentSeed.agentName = a.agentName ?? agentSeed.agentName;
+      agentSeed.agentPhone = a.agentPhone ?? agentSeed.agentPhone;
+    }
   }
 
   const downPaymentPct =
@@ -199,11 +207,19 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── Asesor para el WhatsApp
-  let agent = { agentName: null as string | null, agentPhone: null as string | null };
+  // ── Asesor para el WhatsApp. Refrescamos con get_advisor_details, pero
+  // conservamos como fallback el asesor capturado en la asignación (agentSeed)
+  // para que el paso 6 siempre tenga nombre/teléfono reales del asesor Finva.
+  let agent = { ...agentSeed };
   if (finvaUserId) {
     const advisor = await getAdvisorDetails(finvaUserId);
-    if (advisor.ok) agent = buildAgentResponse(advisor.data);
+    if (advisor.ok) {
+      const detail = advisorToAgent(advisor.data);
+      agent = {
+        agentName: detail.agentName ?? agent.agentName,
+        agentPhone: detail.agentPhone ?? agent.agentPhone,
+      };
+    }
   }
 
   const nextState = mergeServerState(body.serverState, {
