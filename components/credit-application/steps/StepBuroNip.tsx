@@ -229,6 +229,11 @@ export function StepBuroNip({
       if (res.serverState) onServerStateChange(res.serverState);
       track('credit_app_buro_ok', { motorcycleId, reportId: res.reportId });
       await onVerified({ reportId: res.reportId });
+      // Liberamos el estado `verifying` una vez que `onVerified` terminó. En el
+      // camino feliz el wizard ya nos habrá desmontado (paso 6); si el alta de
+      // la solicitud falló pero la autorización pasó, el usuario se queda en
+      // este paso y necesita el spinner apagado para poder reintentar.
+      setStatus('ready');
     } catch {
       setFailedAttempts((n) => n + 1);
       setError('No pudimos autorizar la consulta. Verifica tu NIP e intenta de nuevo.');

@@ -157,7 +157,16 @@ export function CreditApplicationWizard({
   }, [motorcycleId, step]);
 
   useEffect(() => {
-    if (step !== 5) setBuroPhase('enter');
+    if (step !== 5) {
+      setBuroPhase('enter');
+      // StepBuroNip se desmonta al salir del paso 5 (p. ej. al llegar al paso 6
+      // tras autorizar el buró) y no tiene cleanup para su señal de `busy`. Sin
+      // esto, `buroBusy` quedaba en `true` y el overlay/spinner seguía tapando
+      // el StepOffer, impidiendo que el cliente hiciera clic en "Continuar por
+      // WhatsApp".
+      setBuroBusy(false);
+      setBuroBusyMessage('');
+    }
   }, [step]);
 
   function handleWizardBack() {
