@@ -4,7 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Motorcycle } from '@/types/motorcycle';
 import { PrecioContado } from '@/components/PrecioContado';
-import { formatMXN, productPath } from '@/lib/catalog-format';
+import { FinvaCheckoutModal } from '@/components/FinvaCheckoutModal';
+import { cashPrice, formatMXN, productPath } from '@/lib/catalog-format';
+import { site } from '@/lib/site';
 
 export function MotorcycleCard({ moto }: { moto: Motorcycle }) {
   const hasPhoto = Boolean(moto.imageUrl);
@@ -46,7 +48,23 @@ export function MotorcycleCard({ moto }: { moto: Motorcycle }) {
               <PrecioContado moto={moto} compact />
             </div>
           </div>
-          <Link className="btn full" href={productPath(moto)}>Calcular mi pago</Link>
+          <FinvaCheckoutModal
+            price={cashPrice(moto)}
+            suggestedDownPayment={moto.suggestedDownPayment}
+            motorcycle={{
+              id: moto.id,
+              brand: moto.brand,
+              model: moto.model,
+              year: moto.year,
+              slug: moto.slug,
+              name: `${moto.brand} ${moto.model} ${moto.year}`.trim(),
+              finvaMotorcycleId: moto.finvaMotorcycleId ?? null,
+            }}
+            purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
+          >
+            Cómprala ya
+          </FinvaCheckoutModal>
+          <Link className="btn light full" href={productPath(moto)}>Ver más detalles</Link>
         </div>
       </div>
     </article>

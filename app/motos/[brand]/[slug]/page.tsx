@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MotorcycleViewTracker } from "@/components/MotorcycleViewTracker";
-import { PurchaseModule } from "@/components/PurchaseModule";
+import { FinvaCheckout } from "@/components/FinvaCheckout";
 import { PrecioContado } from "@/components/PrecioContado";
 import { MotorcycleReviews } from "@/components/MotorcycleReviews";
 import {
@@ -15,7 +15,6 @@ import {
   productPath,
 } from "@/lib/catalog";
 import { getMotorcycleReviews } from "@/lib/motorcycle-reviews";
-import { getMaxInstallments, getMercadoPagoPublicKey } from "@/lib/mercadopago";
 import { buildProductJsonLd, absoluteAssetUrl } from "@/lib/product-jsonld";
 import { site } from "@/lib/site";
 
@@ -120,9 +119,25 @@ export default async function ProductPage({ params }: Props) {
             {moto.brand} {moto.model} {moto.year}
           </h1>
           <p>{moto.shortDescription}</p>
-          <PurchaseModule
+          {/* <div className="stat-grid">
+            <div className="stat stat--precio">
+              <span className="small muted">Precio promoción</span>
+              <PrecioContado moto={moto} />
+            </div>
+            <div className="stat">
+              <span className="small muted">Desde</span>
+              <strong>
+                {formatMXN(moto.monthlyFrom)}
+                <span className="price-suffix">/mes</span>
+              </strong>
+            </div>
+            <div className="stat">
+              <span className="small muted">Enganche sugerido</span>
+              <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
+            </div>
+          </div> */}
+          <FinvaCheckout
             price={cashPrice(moto)}
-            cardPrice={moto.cardPrice ?? null}
             suggestedDownPayment={moto.suggestedDownPayment}
             motorcycle={{
               id: moto.id,
@@ -134,32 +149,15 @@ export default async function ProductPage({ params }: Props) {
               finvaMotorcycleId: moto.finvaMotorcycleId ?? null,
             }}
             purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
-            mercadoPagoPublicKey={getMercadoPagoPublicKey()}
-            mercadoPagoMaxInstallments={getMaxInstallments()}
-            financingSummary={
-              <div className="stat-grid">
-                <div className="stat stat--precio">
-                  <span className="small muted">Precio promoción</span>
-                  <PrecioContado moto={moto} />
-                </div>
-                <div className="stat">
-                  <span className="small muted">Desde</span>
-                  <strong>
-                    {formatMXN(moto.monthlyFrom)}
-                    <span className="price-suffix">/mes</span>
-                  </strong>
-                </div>
-                <div className="stat">
-                  <span className="small muted">Enganche sugerido</span>
-                  <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
-                </div>
-              </div>
-            }
           />
-          <p className="small muted">
-            Envio incluido en CDMX y area metropolitana. En el resto del pais se
-            recoge en agencia con posibilidad de envio, dependiendo de
-            disponibilidad.
+          <p className="shipping-note small muted">
+            <span className="shipping-note__icon" aria-hidden>
+              🚚
+            </span>
+            <span>
+              Envío incluido en CDMX y área metropolitana. En el resto del país se
+              recoge en agencia, con posibilidad de envío según disponibilidad.
+            </span>
           </p>
         </aside>
       </div>

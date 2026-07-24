@@ -198,7 +198,27 @@ p { color: var(--muted); line-height: 1.6; }
 .sticky-box { position: sticky; top: 90px; }
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
 .stat { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: white; }
-.stat strong { display: block; font-size: 20px; }
+.stat strong { display: block; font-size: 20px; letter-spacing: -.02em; }
+/* Resumen de compra (precio / desde / enganche): etiquetas consistentes y prolijas. */
+.stat-grid .stat { display: flex; flex-direction: column; gap: 6px; justify-content: space-between; }
+.stat-grid .stat > .small.muted {
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Nota de envío: alineada con ícono, separada con un divisor sutil. */
+.shipping-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  line-height: 1.5;
+}
+.shipping-note__icon { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
 .calculator { background: white; border: 1px solid var(--line); border-radius: 26px; padding: 20px; margin-top: 16px; overflow: hidden; }
 /* Franja inferior dentro de la misma tarjeta: verde opaco (sin transparencia ni blur). */
 .calculator-cta {
@@ -521,6 +541,54 @@ p { color: var(--muted); line-height: 1.6; }
 /* Resumen (precio / desde / enganche) dentro del tab de financiamiento. */
 .purchase-financing-summary { margin-bottom: 16px; }
 .purchase-financing-summary .stat-grid { margin: 0; }
+
+/* ── Finva Checkout brick (crédito / contado / tarjeta en iframe) ────────── */
+/* El iframe de Finva ya trae su propia tarjeta (borde + sombra). Este contenedor
+   NO debe dibujar otra tarjeta encima: así evitamos el efecto "tarjeta dentro de
+   tarjeta" y dejamos que el brick sea el único card, limpio y sin dobles bordes. */
+.finva-checkout {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+/* El SDK monta aquí el iframe y ajusta su altura por postMessage. */
+.finva-checkout__mount { width: 100%; }
+
+/* Estado de carga: skeleton propio (sí es tarjeta) para evitar huecos y saltos. */
+.finva-checkout__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 280px;
+  padding: 32px 20px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: 0 14px 40px rgba(13, 27, 18, .05);
+}
+.finva-checkout__loading p { margin: 0; }
+.finva-checkout__spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid #e0e7e1;
+  border-top-color: var(--green);
+  animation: wizardSpin .85s linear infinite;
+}
+
+/* Estado de error / fallback: aquí sí dibujamos nuestra tarjeta. */
+.finva-checkout__fallback {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: 0 14px 40px rgba(13, 27, 18, .05);
+}
+.finva-checkout__fallback p { margin: 0; }
+.finva-checkout__fallback-actions { display: grid; gap: 10px; }
 
 /* ── Card payment intro (resumen antes de abrir el brick MP) ─────────────── */
 .card-intro {
