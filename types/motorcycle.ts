@@ -30,4 +30,20 @@ export type Motorcycle = {
   cardPrice?: number | null;
   /** ID numérico de la moto en la base de datos de Finva (para `id_motorcycle`). */
   finvaMotorcycleId?: number | null;
+  /** Fecha de última edición (columna `updated_at`). Usada para `sitemap.xml` (`lastmod`). */
+  updatedAt?: string | null;
+  /**
+   * Respuesta directa/corta para AEO ("First Answer"). Columna `first_answer`,
+   * opcional — no renderiza nada si está vacía. Requiere agregar la columna
+   * (ver sql/motorcycles_add_first_answer_and_show_price.sql).
+   */
+  firstAnswer?: string | null;
+  /**
+   * Si el bloque de precio (precio de contado / mensualidad / enganche) se
+   * muestra en la ficha de producto. Columna `show_price`, default `false`
+   * mientras la columna no exista o no se haya definido explícitamente —
+   * preserva el comportamiento actual (precio oculto) hasta que se decida
+   * reactivarlo por producto desde Directus.
+   */
+  showPrice?: boolean;
 };
