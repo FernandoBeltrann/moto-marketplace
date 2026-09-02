@@ -12,10 +12,20 @@
  * (updateDraft), así el historial de versiones y el rollback son correctos.
  */
 import { useCallback, useEffect, useState } from 'react';
-import type { CmsBlock, CmsBlockType, CmsPage, CmsPageDoc, CmsPageVersion } from '@/types/cms';
+import type { CmsBindingKind, CmsBlock, CmsBlockType, CmsPage, CmsPageDoc, CmsPageVersion } from '@/types/cms';
 
 type Detail = { page: CmsPage; versions: CmsPageVersion[] };
-type SiteNode = { id: string; label: string; href?: string; managed: 'cms' | 'code' | 'section'; cmsSlug?: string; canCreateChild?: boolean; childSlugPrefix?: string; children?: SiteNode[] };
+type SiteNode = {
+  id: string; label: string; href?: string;
+  kind: 'section' | 'bindable' | 'standalone';
+  bindingKey?: string;
+  status?: 'none' | 'draft' | 'published';
+  hasUnpublishedChanges?: boolean;
+  pageId?: string;
+  canCreateChild?: boolean; childSlugPrefix?: string; children?: SiteNode[];
+};
+type Binding = { kind: CmsBindingKind; key: string | null; urlPath: string };
+type ExistingEntry = { key: string; label: string; html: string; schemaType: string; bindingKind: CmsBindingKind; bindingKey: string; urlPath: string };
 const SCHEMA_TYPES = ['WebPage', 'Article', 'AboutPage', 'FAQPage'] as const;
 const BLOCK_LABELS: Record<CmsBlockType, string> = {
   heading: 'Título', paragraph: 'Párrafo', image: 'Imagen', button: 'Botón',
@@ -79,8 +89,9 @@ const EMPTY_DOC: CmsPageDoc = { slug: '', title: 'Nueva página', description: '
 
 export default function StudioPage() {
   const [pages, setPages] = useState<CmsPage[]>([]);
-  const [existing, setExisting] = useState<{ key: string; label: string; html: string; schemaType: string }[]>([]);
+  const [existing, setExisting] = useState<ExistingEntry[]>([]);
   const [pageId, setPageId] = useState<string | null>(null);
+  const [binding, setBinding] = useState<Binding>({ kind: 'standalone', key: null, urlPath: '' });
   const [doc, setDoc] = useState<CmsPageDoc>(EMPTY_DOC);
   const [versions, setVersions] = useState<CmsPageVersion[]>([]);
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
@@ -122,6 +133,7 @@ export default function StudioPage() {
       const d = (await fetch(`/api/cms/pages/${id}`).then((x) => x.json())) as Detail;
       setPageId(d.page.id); setDoc(d.page.draftDoc); setVersions(d.versions);
       setStatus(d.page.status); setHtmlBuf(renderDoc(d.page.draftDoc)); setTab('build'); setNote(null);
+      setBinding({ kind: d.page.bindingKind, key: d.page.bindingKey, urlPath: d.page.urlPath });
     } finally {
       setBusy('');
     }
@@ -130,14 +142,20 @@ export default function StudioPage() {
   function newPage() {
     setPageId(null); setDoc({ ...EMPTY_DOC, blocks: [newBlock('heading')] }); setVersions([]);
     setStatus('draft'); setTab('build'); setHtmlBuf(''); setNote('Página nueva — agrega bloques y guarda.');
+    setBinding({ kind: 'standalone', key: null, urlPath: '' });
   }
 
   async function importExisting(key: string) {
     const pg = existing.find((e) => e.key === key); if (!pg) return;
+    // Si esta página real ya tiene una página CMS asociada (bindingKey), ábrela — no dupliques.
+    const already = pages.find((p) => p.bindingKey === pg.bindingKey);
+    if (already) { await loadPage(already.id); setNote(`"${pg.label}" ya tenía una página CMS — la abrí para seguir editando.`); return; }
     setBusy('Adaptando HTML…');
     const r = (await jpost('/api/cms/parse-html', { html: pg.html, title: pg.label.replace(/^[^·]+· /, ''), schemaType: pg.schemaType })) as { doc: CmsPageDoc };
     setBusy(''); setPageId(null); setDoc(r.doc); setVersions([]); setStatus('draft');
-    setHtmlBuf(renderDoc(r.doc)); setTab('build'); setNote(`Importada "${pg.label}" — edítala y guarda como página nueva.`);
+    setBinding({ kind: pg.bindingKind, key: pg.bindingKey, urlPath: pg.urlPath });
+    setHtmlBuf(renderDoc(r.doc)); setTab('build');
+    setNote(`Importada "${pg.label}" — al guardar, esto controlará ${pg.urlPath} en vivo (aún no publicado).`);
   }
 
   // --- edición de bloques ---
@@ -168,7 +186,13 @@ export default function StudioPage() {
 
   async function save() {
     setBusy('Guardando…');
-    const payload = { doc: { ...doc, slug: doc.slug || slugify(doc.title) }, pageId: pageId ?? undefined, source: 'manual', note: 'Edición visual' };
+    const finalSlug = doc.slug || slugify(doc.title);
+    const payload: Record<string, unknown> = { doc: { ...doc, slug: finalSlug }, pageId: pageId ?? undefined, source: 'manual', note: 'Edición visual' };
+    if (!pageId) {
+      payload.binding = { kind: binding.kind, key: binding.key, urlPath: binding.kind === 'standalone' ? (binding.urlPath || `/p/${finalSlug}`) : binding.urlPath };
+    } else if (binding.kind === 'standalone') {
+      payload.urlPath = binding.urlPath || `/p/${finalSlug}`;
+    }
     const r = (await jpost('/api/cms/pages', payload)) as { page?: CmsPage; error?: string };
     setBusy('');
     if (r.page) { await refreshList(); await loadPage(r.page.id); setNote(`Guardado v${r.page.currentVersion}.`); }
@@ -192,30 +216,38 @@ export default function StudioPage() {
     setAiPrompt('');
   }
 
-  // --- mapa del sitio ---
-  function openMapNode(node: SiteNode) {
-    if (node.managed === 'cms' && node.cmsSlug) {
-      const pg = pages.find((p) => p.slug === node.cmsSlug);
-      if (pg) loadPage(pg.id);
-    }
+  // --- mapa del sitio (interactivo: cada página real muestra su estado y se edita con un click) ---
+  async function openMapNode(node: SiteNode) {
+    if (node.kind === 'section') return;
+    if (node.pageId) { await loadPage(node.pageId); return; }
+    if (node.kind === 'bindable' && node.bindingKey) { await importExisting(node.bindingKey); return; }
   }
   function createUnder(node: SiteNode) {
     const prefix = node.childSlugPrefix || '';
     setPageId(null);
     setDoc({ slug: prefix, title: 'Nueva subpágina', description: '', blocks: [newBlock('heading')], schema: { type: 'WebPage', breadcrumb: [{ name: node.label, url: node.href || '/' }] } });
     setVersions([]); setStatus('draft'); setTab('build'); setHtmlBuf('');
+    setBinding({ kind: 'standalone', key: null, urlPath: prefix ? `/p/${prefix}` : '' });
     setNote(`Nueva subpágina bajo "${node.label}". Prefijo de slug sugerido: "${prefix}".`);
   }
+  function statusDot(node: SiteNode): { color: string; label: string } {
+    if (node.status === 'published' && node.hasUnpublishedChanges) return { color: '#dd5a10', label: 'publicada · con cambios sin publicar' };
+    if (node.status === 'published') return { color: '#3aa35a', label: 'publicada' };
+    if (node.status === 'draft') return { color: '#c9a227', label: 'borrador sin publicar' };
+    return { color: '#c8c6c0', label: 'sin tocar por el CMS' };
+  }
   function renderMapNode(node: SiteNode, depth: number): React.ReactNode {
-    const badge: React.CSSProperties = { fontFamily: 'monospace', fontSize: 10, padding: '2px 7px', borderRadius: 5, background: node.managed === 'cms' ? '#deecdd' : node.managed === 'code' ? '#efeee9' : '#dfeaf1', color: node.managed === 'cms' ? '#40794a' : node.managed === 'code' ? '#888' : '#2f6d90' };
-    const mini: React.CSSProperties = { border: '1px solid #ccc', background: '#fff', borderRadius: 7, padding: '2px 9px', fontSize: 12, cursor: 'pointer' };
+    const mini: React.CSSProperties = { border: '1px solid #ccc', background: '#fff', borderRadius: 7, padding: '2px 9px', fontSize: 12, cursor: 'pointer', textDecoration: 'none', color: '#333' };
+    const dot = node.kind !== 'section' ? statusDot(node) : null;
     return (
       <div key={node.id} style={{ marginLeft: depth * 16, padding: '5px 0', borderLeft: depth ? '1px solid #eee' : undefined, paddingLeft: depth ? 10 : 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: node.managed === 'section' ? 700 : 600, fontSize: 14 }}>{node.label}</span>
-          <span style={badge}>{node.managed === 'cms' ? 'editable' : node.managed === 'code' ? 'código/Directus' : 'sección'}</span>
+          {dot && <span title={dot.label} style={{ width: 9, height: 9, borderRadius: '50%', background: dot.color, display: 'inline-block', flex: '0 0 auto' }} />}
+          <span style={{ fontWeight: node.kind === 'section' ? 700 : 600, fontSize: 14 }}>{node.label}</span>
           {node.href && <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#999' }}>{node.href}</span>}
-          {node.managed === 'cms' && <button style={mini} onClick={() => openMapNode(node)}>editar</button>}
+          {node.kind !== 'section' && <button style={mini} onClick={() => openMapNode(node)}>editar</button>}
+          {node.href && <a style={mini} href={node.href} target="_blank" rel="noreferrer">ver</a>}
+          {node.href && node.pageId && <a style={{ ...mini, borderColor: '#dd5a10', color: '#97400c' }} href={`${node.href}?cmsPreview=1`} target="_blank" rel="noreferrer">vista previa borrador</a>}
           {node.canCreateChild && <button style={{ ...mini, borderColor: '#dd5a10', color: '#97400c' }} onClick={() => createUnder(node)}>+ subpágina</button>}
         </div>
         {(node.children || []).map((c) => renderMapNode(c, depth + 1))}
@@ -348,7 +380,7 @@ export default function StudioPage() {
         {pages.map((p) => (
           <div key={p.id} onClick={() => loadPage(p.id)} style={{ padding: 8, borderRadius: 8, cursor: 'pointer', background: pageId === p.id ? '#f0e6dc' : 'transparent' }}>
             <div style={{ fontWeight: 600, fontSize: 13 }}>{p.title}</div>
-            <div style={{ fontSize: 11, color: '#999' }}>/p/{p.slug} · {p.status} · v{p.currentVersion}</div>
+            <div style={{ fontSize: 11, color: '#999' }}>{p.urlPath} · {p.bindingKind !== 'standalone' ? p.bindingKind : 'standalone'} · {p.status} · v{p.currentVersion}</div>
           </div>
         ))}
       </aside>
@@ -416,7 +448,7 @@ export default function StudioPage() {
         {tab === 'map' && (
           <div style={box}>
             <strong>Mapa del sitio</strong>
-            <p style={{ fontSize: 12.5, color: '#888', margin: '6px 0 14px' }}>Ubica dónde trabajar: <b>editar</b> abre una página del CMS; <b>+ subpágina</b> crea una página nueva bajo esa sección (con su miga de pan). Lo marcado “código/Directus” lo gestiona ingeniería.</p>
+            <p style={{ fontSize: 12.5, color: '#888', margin: '6px 0 14px' }}>Cada página real del sitio (motos, blog, legales, home) se puede editar aquí — el punto de color muestra si el CMS ya la tocó: <b>editar</b> la abre (importándola si es la primera vez), <b>ver</b> abre la página real, <b>vista previa del borrador</b> muestra cómo quedaría sin publicar. <b>+ subpágina</b> crea una página nueva en una URL propia.</p>
             {siteMap.map((n) => renderMapNode(n, 0))}
             {!siteMap.length && <div style={{ color: '#999' }}>Cargando mapa…</div>}
           </div>
@@ -430,13 +462,20 @@ export default function StudioPage() {
           <input style={inp} value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} />
           <div style={lbl}>Slug</div>
           <input style={inp} value={doc.slug} placeholder={slugify(doc.title)} onChange={(e) => setDoc({ ...doc, slug: e.target.value })} disabled={!!pageId} />
+          <div style={lbl}>URL {binding.kind !== 'standalone' && '(real — la controla la página de origen)'}</div>
+          {binding.kind === 'standalone' ? (
+            <input style={inp} value={binding.urlPath} placeholder={`/p/${doc.slug || slugify(doc.title)}`} onChange={(e) => { let v = e.target.value; if (v && !v.startsWith('/')) v = '/' + v; setBinding({ ...binding, urlPath: v }); }} />
+          ) : (
+            <input style={{ ...inp, background: '#f3f2ee', color: '#888' }} value={binding.urlPath} disabled />
+          )}
           <div style={lbl}>Schema.org</div>
           <select style={inp} value={doc.schema.type} onChange={(e) => setDoc({ ...doc, schema: { ...doc.schema, type: e.target.value as CmsPageDoc['schema']['type'] } })}>
             {SCHEMA_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <button style={{ ...btnPri, width: '100%', marginTop: 10 }} onClick={save}>Guardar cambios</button>
           <button style={{ ...btn, width: '100%', marginTop: 6 }} onClick={publish} disabled={!pageId}>Revisar y publicar →</button>
-          {pageId && <a href={`/p/${doc.slug}`} target="_blank" rel="noreferrer" style={{ ...btn, display: 'block', textAlign: 'center', marginTop: 6, textDecoration: 'none' }}>Ver página ({status})</a>}
+          {pageId && <a href={binding.urlPath || `/p/${doc.slug}`} target="_blank" rel="noreferrer" style={{ ...btn, display: 'block', textAlign: 'center', marginTop: 6, textDecoration: 'none' }}>Ver página ({status})</a>}
+          {pageId && <a href={`${binding.urlPath || `/p/${doc.slug}`}?cmsPreview=1`} target="_blank" rel="noreferrer" style={{ ...btn, display: 'block', textAlign: 'center', marginTop: 6, textDecoration: 'none', borderColor: '#dd5a10', color: '#97400c' }}>Vista previa del borrador</a>}
         </div>
 
         <div style={box}>

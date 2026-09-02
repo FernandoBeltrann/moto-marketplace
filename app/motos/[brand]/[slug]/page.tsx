@@ -17,6 +17,10 @@ import {
 import { getMotorcycleReviews } from "@/lib/motorcycle-reviews";
 import { buildProductJsonLd, absoluteAssetUrl } from "@/lib/product-jsonld";
 import { site } from "@/lib/site";
+import { getCmsOverrideForRequest } from "@/lib/cms/overrides";
+import { renderDocHtml } from "@/lib/cms/render";
+import { buildPageJsonLd } from "@/lib/cms/schema-jsonld";
+import { productPath as motoProductPath } from "@/lib/catalog";
 
 export const revalidate = 120;
 
@@ -31,45 +35,63 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { brand, slug } = await params;
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) return { title: "Moto no encontrada" };
+  const { doc: override } = await getCmsOverrideForRequest(`moto:${moto.id}`, false);
+  const title = override?.title || `${moto.brand} ${moto.model} ${moto.year} a crédito`;
+  const description =
+    override?.description ||
+    `Consulta precio, mensualidad estimada y opciones de compra para ${moto.brand} ${moto.model} ${moto.year}. Financiamiento gestionado por Finva.`;
+  const ogImage = override?.ogImageUrl || (moto.imageUrl ? absoluteAssetUrl(moto.imageUrl) : undefined);
   return {
-    title: `${moto.brand} ${moto.model} ${moto.year} a crédito`,
-    description: `Consulta precio, mensualidad estimada y opciones de compra para ${moto.brand} ${moto.model} ${moto.year}. Financiamiento gestionado por Finva.`,
+    title,
+    description,
     alternates: { canonical: `${site.url}${productPath(moto)}` },
     openGraph: {
-      title: `${moto.brand} ${moto.model} ${moto.year}`,
-      description: moto.shortDescription,
+      title,
+      description,
       type: "website",
       url: `${site.url}${productPath(moto)}`,
-      images: moto.imageUrl
-        ? [{ url: absoluteAssetUrl(moto.imageUrl) }]
-        : undefined,
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: `${moto.brand} ${moto.model} ${moto.year}`,
-      description: moto.shortDescription,
-      images: moto.imageUrl ? [absoluteAssetUrl(moto.imageUrl)] : undefined,
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+type PageProps = Props & { searchParams: Promise<{ cmsPreview?: string }> };
+
+export default async function ProductPage({ params, searchParams }: PageProps) {
   const { brand, slug } = await params;
+  const sp = searchParams ? await searchParams : {};
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) notFound();
 
   const reviews = await getMotorcycleReviews(moto.id);
   const jsonLd = buildProductJsonLd(moto, { reviews });
+  const { doc: override, isPreview } = await getCmsOverrideForRequest(`moto:${moto.id}`, sp.cmsPreview === '1');
+  const overrideHtml = override ? renderDocHtml(override) : null;
+  const overrideJsonLd = override ? buildPageJsonLd(override, motoProductPath(moto)) : [];
 
   const hasPhoto = Boolean(moto.imageUrl);
 
   return (
     <main className="product-hero">
       <MotorcycleViewTracker motorcycle={moto} />
+      {isPreview && (
+        <div style={{ background: '#fff3e0', color: '#7a3b00', padding: '8px 16px', textAlign: 'center', fontSize: 13 }}>
+          Vista previa del borrador — esto aún no está publicado.
+        </div>
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {overrideJsonLd.map((node, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(node) }} />
+      ))}
       <div className="container product-grid">
         <div>
           <Link href="/motos" className="small muted">
@@ -180,6 +202,12 @@ export default async function ProductPage({ params }: Props) {
           </p>
         </aside>
       </div>
+      {overrideHtml && (
+        <section className="section">
+          {/* Contenido editorial de marketing (CMS) — HTML ya saneado por renderDocHtml. */}
+          <div className="container cms-page-body" style={{ maxWidth: 820 }} dangerouslySetInnerHTML={{ __html: overrideHtml }} />
+        </section>
+      )}
       <MotorcycleReviews reviews={reviews} />
     </main>
   );

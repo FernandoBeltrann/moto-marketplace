@@ -1,55 +1,118 @@
 /**
- * Mapa auxiliar de la estructura del sitio para que Marketing ubique DÓNDE
- * quiere cambiar algo: editar una página del CMS existente, o crear una
- * subpágina bajo una sección. Marca qué es editable aquí y qué vive en código
- * o Directus (honesto con los límites del stack, ver memo).
+ * Mapa del sitio INTERACTIVO: todas las páginas reales que el CMS puede
+ * controlar (lib/cms/bindings.ts) más las páginas standalone creadas en el
+ * Studio, cada una con su estado real (sin tocar / borrador / publicada) —
+ * para que Marketing vea de un vistazo qué ya está editado y pueda entrar a
+ * editar cualquier página real con un click, sin pasar primero por
+ * "Importar existente".
  */
 import { listPages } from '@/lib/cms/pages';
+import { getBindablePages, type BindablePage } from '@/lib/cms/bindings';
+import type { CmsPage } from '@/types/cms';
+
+export type SiteNodeStatus = 'none' | 'draft' | 'published';
 
 export type SiteNode = {
   id: string;
   label: string;
   href?: string;
-  /** 'cms' editable en el builder; 'code' gestionado por ingeniería/Directus; 'section' agrupador. */
-  managed: 'cms' | 'code' | 'section';
-  /** Si es una página CMS, su slug para abrirla. */
-  cmsSlug?: string;
-  /** Si permite crear una subpágina CMS bajo esta sección. */
+  kind: 'section' | 'bindable' | 'standalone';
+  /** Solo 'bindable': llave para editar/importar esta página real. */
+  bindingKey?: string;
+  /** Estado real: 'none' = el CMS nunca la ha tocado, 'draft'/'published' = ya existe una página CMS. */
+  status?: SiteNodeStatus;
+  /** true si status='published' pero hay cambios en borrador sin publicar todavía. */
+  hasUnpublishedChanges?: boolean;
+  /** id de la página CMS ya creada (bindable con página existente, o standalone). */
+  pageId?: string;
+  /** Solo 'section': permite crear una página CMS nueva (standalone) bajo esta sección. */
   canCreateChild?: boolean;
-  /** Prefijo de slug sugerido al crear subpágina. */
   childSlugPrefix?: string;
   children?: SiteNode[];
 };
 
+function statusOf(page: CmsPage | undefined): { status: SiteNodeStatus; hasUnpublishedChanges: boolean } {
+  if (!page) return { status: 'none', hasUnpublishedChanges: false };
+  if (page.status === 'published') {
+    const changed = JSON.stringify(page.draftDoc) !== JSON.stringify(page.publishedDoc);
+    return { status: 'published', hasUnpublishedChanges: changed };
+  }
+  return { status: 'draft', hasUnpublishedChanges: false };
+}
+
 export async function getSiteMap(): Promise<SiteNode[]> {
-  const pages = await listPages().catch(() => []);
-  const cmsChildren: SiteNode[] = pages.map((p) => ({
-    id: `cms:${p.slug}`, label: `${p.title} (${p.status})`, href: `/p/${p.slug}`, managed: 'cms', cmsSlug: p.slug,
+  const [pages, bindables] = await Promise.all([listPages().catch(() => [] as CmsPage[]), getBindablePages().catch(() => [])]);
+  const byBindingKey = new Map(pages.filter((p) => p.bindingKey).map((p) => [p.bindingKey as string, p]));
+  const standalonePages = pages.filter((p) => p.bindingKind === 'standalone');
+
+  function bindableNode(bk: BindablePage): SiteNode {
+    const page = byBindingKey.get(bk.bindingKey);
+    const { status, hasUnpublishedChanges } = statusOf(page);
+    return {
+      id: bk.bindingKey,
+      label: bk.label,
+      href: bk.urlPath,
+      kind: 'bindable',
+      bindingKey: bk.bindingKey,
+      status,
+      hasUnpublishedChanges,
+      pageId: page?.id,
+    };
+  }
+
+  const home = bindables.find((b) => b.bindingKey === 'static:home');
+  const motosListado = bindables.find((b) => b.bindingKey === 'static:motos');
+  const motosCredito = bindables.find((b) => b.bindingKey === 'static:motos-a-credito');
+  const aviso = bindables.find((b) => b.bindingKey === 'static:aviso-de-privacidad');
+  const envio = bindables.find((b) => b.bindingKey === 'static:envio-garantia');
+  const motos = bindables.filter((b) => b.bindingKind === 'moto');
+  const posts = bindables.filter((b) => b.bindingKind === 'blog');
+
+  const standaloneChildren: SiteNode[] = standalonePages.map((p) => ({
+    id: `standalone:${p.id}`,
+    label: `${p.title} (${p.status})`,
+    href: p.urlPath,
+    kind: 'standalone',
+    status: p.status === 'published' ? 'published' : 'draft',
+    hasUnpublishedChanges: p.status === 'published' && JSON.stringify(p.draftDoc) !== JSON.stringify(p.publishedDoc),
+    pageId: p.id,
   }));
 
-  return [
-    { id: 'home', label: 'Inicio', href: '/', managed: 'code' },
-    {
-      id: 'motos', label: 'Motos', href: '/motos', managed: 'code', canCreateChild: true, childSlugPrefix: 'motos-',
-      children: [
-        { id: 'motos-catalogo', label: 'Catálogo (fichas de moto)', href: '/motos/[brand]/[slug]', managed: 'code' },
-        { id: 'motos-credito', label: 'Motos a crédito', href: '/motos-a-credito', managed: 'code' },
-      ],
-    },
-    {
-      id: 'blog', label: 'Blog', href: '/blog', managed: 'code', canCreateChild: true, childSlugPrefix: 'blog-',
-      children: [{ id: 'blog-posts', label: 'Artículos (Directus)', href: '/blog/[slug]', managed: 'code' }],
-    },
-    {
-      id: 'legal', label: 'Legal', managed: 'section',
-      children: [
-        { id: 'aviso', label: 'Aviso de privacidad', href: '/aviso-de-privacidad', managed: 'code' },
-        { id: 'envio', label: 'Envío y garantía', href: '/envio-garantia', managed: 'code' },
-      ],
-    },
-    {
-      id: 'cms', label: 'Páginas del CMS', href: '/p', managed: 'section', canCreateChild: true, childSlugPrefix: '',
-      children: cmsChildren,
-    },
-  ];
+  const tree: SiteNode[] = [];
+  if (home) tree.push(bindableNode(home));
+
+  const motosSectionChildren: SiteNode[] = [];
+  if (motosListado) motosSectionChildren.push(bindableNode(motosListado));
+  if (motosCredito) motosSectionChildren.push(bindableNode(motosCredito));
+  motosSectionChildren.push({
+    id: 'motos-fichas',
+    label: `Fichas de moto (${motos.length})`,
+    kind: 'section',
+    children: motos.map(bindableNode),
+  });
+  tree.push({ id: 'motos', label: 'Motos', href: '/motos', kind: 'section', children: motosSectionChildren });
+
+  tree.push({
+    id: 'blog',
+    label: 'Blog',
+    href: '/blog',
+    kind: 'section',
+    children: [{ id: 'blog-posts', label: `Artículos (${posts.length})`, kind: 'section', children: posts.map(bindableNode) }],
+  });
+
+  const legalChildren: SiteNode[] = [];
+  if (aviso) legalChildren.push(bindableNode(aviso));
+  if (envio) legalChildren.push(bindableNode(envio));
+  tree.push({ id: 'legal', label: 'Legal', kind: 'section', children: legalChildren });
+
+  tree.push({
+    id: 'cms',
+    label: 'Páginas nuevas (fuera del sitio actual)',
+    kind: 'section',
+    canCreateChild: true,
+    childSlugPrefix: '',
+    children: standaloneChildren,
+  });
+
+  return tree;
 }

@@ -1,23 +1,47 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
 import { HeroMotoRotator } from '@/components/HeroMotoRotator';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getBrands, getMotorcycles } from '@/lib/catalog';
+import { getCmsOverrideForRequest } from '@/lib/cms/overrides';
+import { renderDocHtml } from '@/lib/cms/render';
 
 export const revalidate = 120;
 
-export default async function HomePage() {
-  const [all, brands] = await Promise.all([getMotorcycles(), getBrands()]);
+const BINDING_KEY = 'static:home';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { doc: override } = await getCmsOverrideForRequest(BINDING_KEY, false);
+  if (!override) return {};
+  return { title: override.title || undefined, description: override.description || undefined };
+}
+
+type Props = { searchParams: Promise<{ cmsPreview?: string }> };
+
+export default async function HomePage({ searchParams }: Props) {
+  const sp = searchParams ? await searchParams : {};
+  const [all, brands, { doc: override, isPreview }] = await Promise.all([
+    getMotorcycles(),
+    getBrands(),
+    getCmsOverrideForRequest(BINDING_KEY, sp.cmsPreview === '1'),
+  ]);
   const featured = all.slice(0, 6);
   const heroSlides = all.filter((m) => m.imageUrl).slice(0, 8);
+  const extraHtml = override ? renderDocHtml(override) : null;
   return (
     <main>
+      {isPreview && (
+        <div style={{ background: '#fff3e0', color: '#7a3b00', padding: '8px 16px', textAlign: 'center', fontSize: 13 }}>
+          Vista previa del borrador — esto aún no está publicado.
+        </div>
+      )}
       <section className="hero">
         <div className="container hero-grid">
           <div>
             <span className="eyebrow">Motos nuevas + financiamiento powered by Finva</span>
-            <h1>Encuentra tu moto y calcula cuánto pagarías al mes.</h1>
-            <p>Explora motos por presupuesto, uso y marca. Inicia tu compra en minutos con opciones de financiamiento gestionadas por Finva.</p>
+            <h1>{override?.title || 'Encuentra tu moto y calcula cuánto pagarías al mes.'}</h1>
+            <p>{override?.description || 'Explora motos por presupuesto, uso y marca. Inicia tu compra en minutos con opciones de financiamiento gestionadas por Finva.'}</p>
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
@@ -58,6 +82,13 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {extraHtml && (
+        <section className="section">
+          {/* Sección adicional editable por marketing (CMS), al final del home. HTML ya saneado. */}
+          <div className="container cms-page-body" dangerouslySetInnerHTML={{ __html: extraHtml }} />
+        </section>
+      )}
     </main>
   );
 }

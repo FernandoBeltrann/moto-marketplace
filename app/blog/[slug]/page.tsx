@@ -6,6 +6,8 @@ import { getBlogPostBySlug, getBlogPosts, blogPostPath, blogPostDate } from '@/l
 import { buildBlogPostingJsonLd } from '@/lib/blog-jsonld';
 import { absoluteAssetUrl } from '@/lib/product-jsonld';
 import { site } from '@/lib/site';
+import { getCmsOverrideForRequest } from '@/lib/cms/overrides';
+import { renderDocHtml } from '@/lib/cms/render';
 
 export const revalidate = 120;
 
@@ -20,24 +22,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getBlogPostBySlug(slug);
   if (!post) return { title: 'Artículo no encontrado' };
-  const description = post.excerpt || site.description;
-  const images = post.coverImageUrl ? [{ url: absoluteAssetUrl(post.coverImageUrl) }] : undefined;
+  const { doc: override } = await getCmsOverrideForRequest(`blog:${post.id}`, false);
+  const title = override?.title || post.title;
+  const description = override?.description || post.excerpt || site.description;
+  const ogImage = override?.ogImageUrl || (post.coverImageUrl ? absoluteAssetUrl(post.coverImageUrl) : undefined);
   return {
-    title: post.title,
+    title,
     description,
     alternates: { canonical: `${site.url}${blogPostPath(post)}` },
     openGraph: {
-      title: post.title,
+      title,
       description,
       type: 'article',
       url: `${site.url}${blogPostPath(post)}`,
-      images,
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.title,
+      title,
       description,
-      images: post.coverImageUrl ? [absoluteAssetUrl(post.coverImageUrl)] : undefined,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
@@ -48,16 +52,29 @@ function formatPostDate(iso: string): string {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
 }
 
-export default async function BlogPostPage({ params }: Props) {
+type PageProps = Props & { searchParams: Promise<{ cmsPreview?: string }> };
+
+export default async function BlogPostPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
   const post = await getBlogPostBySlug(slug);
   if (!post) notFound();
 
   const jsonLd = buildBlogPostingJsonLd(post);
   const dateLabel = formatPostDate(blogPostDate(post));
+  const { doc: override, isPreview } = await getCmsOverrideForRequest(`blog:${post.id}`, sp.cmsPreview === '1');
+  // El body del post ya es HTML (Directus). Un override del CMS lo reemplaza
+  // por completo — es el mismo tipo de contenido, solo con otro editor.
+  const title = override?.title || post.title;
+  const bodyHtml = override ? renderDocHtml(override) : post.body;
 
   return (
     <main className="section">
+      {isPreview && (
+        <div style={{ background: '#fff3e0', color: '#7a3b00', padding: '8px 16px', textAlign: 'center', fontSize: 13 }}>
+          Vista previa del borrador — esto aún no está publicado.
+        </div>
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -69,7 +86,7 @@ export default async function BlogPostPage({ params }: Props) {
         <span className="eyebrow" style={{ marginTop: 18 }}>
           Blog
         </span>
-        <h1>{post.title}</h1>
+        <h1>{title}</h1>
         <div className="small muted" style={{ marginBottom: 18 }}>
           {post.author ? `${post.author}` : 'MotoClick'}
           {dateLabel ? ` · ${dateLabel}` : ''}
@@ -95,7 +112,7 @@ export default async function BlogPostPage({ params }: Props) {
           igual de confiable que cualquier otro campo de cms_marketplace que
           ya se renderiza en el sitio.
         */}
-        <div className="blog-body" dangerouslySetInnerHTML={{ __html: post.body }} />
+        <div className="blog-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       </div>
     </main>
   );

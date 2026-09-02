@@ -75,12 +75,40 @@ export type CmsPageDoc = {
 
 export type CmsPageStatus = 'draft' | 'published';
 
+/**
+ * A qué página REAL del marketplace controla este CmsPage — o 'standalone'
+ * si es una página nueva sin contraparte en el código (antes forzada a
+ * vivir en /p/[slug], ahora vive en `urlPath`, configurable).
+ *
+ * bindingKey es la llave estable para buscar el override publicado desde
+ * la página real (ver lib/cms/overrides.ts):
+ *   moto:<motorcycleId>          — página de una moto individual
+ *   blog:<blogPostId>            — un post del blog
+ *   static:home                  — home
+ *   static:motos                 — listado /motos
+ *   static:motos-a-credito       — listado /motos-a-credito
+ *   static:aviso-de-privacidad   — página legal
+ *   static:envio-garantia        — página legal
+ */
+export type CmsBindingKind = 'standalone' | 'moto' | 'blog' | 'static';
+
 /** Fila de `cms_pages` mapeada a dominio (ver lib/cms/pages.ts). */
 export type CmsPage = {
   id: string;
   slug: string;
   title: string;
   status: CmsPageStatus;
+  /** null = página standalone (vive donde diga urlPath, ej. /p/algo o cualquier ruta libre). */
+  bindingKind: CmsBindingKind;
+  /** Llave estable de binding (ver arriba). null para standalone. */
+  bindingKey: string | null;
+  /**
+   * Ruta pública real donde vive esta página:
+   *  - standalone: editable por marketing (default sugerido /p/{slug}).
+   *  - bound (moto/blog/static): la ruta real del sitio (no editable aquí,
+   *    la controla el dato de origen — ej. la moto o el post).
+   */
+  urlPath: string;
   /** Borrador en edición (JSON canónico). */
   draftDoc: CmsPageDoc;
   /** Última versión publicada; null si nunca se ha publicado. */

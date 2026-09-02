@@ -1,17 +1,36 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { site } from '@/lib/site';
+import { getCmsOverrideForRequest } from '@/lib/cms/overrides';
+import { renderDocHtml } from '@/lib/cms/render';
 
-export const metadata: Metadata = {
-  title: 'Envío y garantía',
-  description:
-    'Políticas de envío en Ciudad de México y zona metropolitana, resto de la República, y garantías según marca.',
-  alternates: { canonical: `${site.url.replace(/\/$/, '')}/envio-garantia` },
-};
+const BINDING_KEY = 'static:envio-garantia';
 
-export default function EnvioGarantiaPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { doc: override } = await getCmsOverrideForRequest(BINDING_KEY, false);
+  return {
+    title: override?.title || 'Envío y garantía',
+    description: override?.description || 'Políticas de envío en Ciudad de México y zona metropolitana, resto de la República, y garantías según marca.',
+    alternates: { canonical: `${site.url.replace(/\/$/, '')}/envio-garantia` },
+  };
+}
+
+type Props = { searchParams: Promise<{ cmsPreview?: string }> };
+
+export default async function EnvioGarantiaPage({ searchParams }: Props) {
+  const sp = searchParams ? await searchParams : {};
+  const { doc: override, isPreview } = await getCmsOverrideForRequest(BINDING_KEY, sp.cmsPreview === '1');
+  const overrideHtml = override ? renderDocHtml(override) : null;
   return (
     <main className="section">
+      {isPreview && (
+        <div style={{ background: '#fff3e0', color: '#7a3b00', padding: '8px 16px', textAlign: 'center', fontSize: 13 }}>
+          Vista previa del borrador — esto aún no está publicado.
+        </div>
+      )}
+      {overrideHtml ? (
+        <div className="container cms-page-body" style={{ maxWidth: 720 }} dangerouslySetInnerHTML={{ __html: overrideHtml }} />
+      ) : (
       <div className="container" style={{ maxWidth: 720 }}>
         <p className="small muted" style={{ marginBottom: 12 }}>
           <Link href="/">Inicio</Link>
@@ -60,6 +79,7 @@ export default function EnvioGarantiaPage() {
           página: <Link href="/aviso-de-privacidad">Aviso de privacidad</Link>.
         </p>
       </div>
+      )}
     </main>
   );
 }

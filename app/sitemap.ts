@@ -28,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
   const cms = await getPublishedSitemapEntries();
   const cmsEntries = cms.map((c) => ({
-    url: `${site.url}/p/${c.slug}`,
+    url: `${site.url}${c.urlPath}`,
     lastModified: c.updatedAt ? new Date(c.updatedAt) : new Date(),
   }));
   return [...base, ...products, ...blogEntries, ...cmsEntries];

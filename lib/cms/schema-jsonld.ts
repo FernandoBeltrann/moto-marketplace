@@ -12,9 +12,9 @@ import { site } from '@/lib/site';
 
 const CONTEXT = 'https://schema.org';
 
-export function buildPageJsonLd(doc: CmsPageDoc): Record<string, unknown>[] {
+export function buildPageJsonLd(doc: CmsPageDoc, urlPath?: string): Record<string, unknown>[] {
   const base = site.url.replace(/\/$/, '');
-  const url = `${base}/p/${doc.slug}`;
+  const url = `${base}${urlPath ?? `/p/${doc.slug}`}`;
 
   const main: Record<string, unknown> = {
     '@context': CONTEXT,
