@@ -93,6 +93,14 @@ export function mapMotorcycleRow(row: Record<string, unknown>): Motorcycle {
             const n = asNumber(row.finva_motorcycle_id);
             return Number.isFinite(n) && n > 0 ? n : null;
           })(),
+    updatedAt: row.updated_at == null ? null : asString(row.updated_at),
+    // `first_answer`/`show_price` no existen todavía en `motorcycles` — si la
+    // columna no existe, `row.first_answer`/`row.show_price` vienen `undefined`
+    // y esto degrada de forma segura (sin respuesta / precio oculto, el
+    // comportamiento actual). Ver sql/motorcycles_add_first_answer_and_show_price.sql.
+    firstAnswer:
+      row.first_answer == null || row.first_answer === '' ? null : asString(row.first_answer),
+    showPrice: row.show_price === true,
   };
 }
 

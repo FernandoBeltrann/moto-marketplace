@@ -1105,3 +1105,15 @@ p { color: var(--muted); line-height: 1.6; }
   .hero { padding-top: 42px; }
 }
 
+
+/* Cuerpo de artículo de blog: HTML libre del editor WYSIWYG de Directus. */
+.blog-body { font-size: 16px; line-height: 1.7; color: var(--text); }
+.blog-body h2 { margin: 34px 0 12px; font-size: 22px; }
+.blog-body h3 { margin: 26px 0 10px; font-size: 18px; }
+.blog-body p { margin: 0 0 16px; }
+.blog-body ul, .blog-body ol { margin: 0 0 16px; padding-left: 22px; }
+.blog-body li { margin-bottom: 6px; }
+.blog-body a { color: var(--green-dark); font-weight: 700; }
+.blog-body blockquote { margin: 20px 0; padding: 4px 18px; border-left: 4px solid var(--soft); color: var(--muted); }
+.blog-body img { max-width: 100%; height: auto; border-radius: 14px; margin: 12px 0; }
+.blog-body strong { color: var(--dark); }

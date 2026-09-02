@@ -44,6 +44,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ? [{ url: absoluteAssetUrl(moto.imageUrl) }]
         : undefined,
     },
+    twitter: {
+      card: "summary_large_image",
+      title: `${moto.brand} ${moto.model} ${moto.year}`,
+      description: moto.shortDescription,
+      images: moto.imageUrl ? [absoluteAssetUrl(moto.imageUrl)] : undefined,
+    },
   };
 }
 
@@ -119,23 +125,36 @@ export default async function ProductPage({ params }: Props) {
             {moto.brand} {moto.model} {moto.year}
           </h1>
           <p>{moto.shortDescription}</p>
-          {/* <div className="stat-grid">
-            <div className="stat stat--precio">
-              <span className="small muted">Precio promoción</span>
-              <PrecioContado moto={moto} />
+          {moto.firstAnswer ? (
+            <p className="first-answer" style={{ fontWeight: 600 }}>
+              {moto.firstAnswer}
+            </p>
+          ) : null}
+          {/*
+            Bloque de precio: controlado por `moto.showPrice` (columna
+            `show_price` en Directus, default false). Mientras la columna no
+            exista o no se marque true por producto, esto no renderiza nada —
+            mismo comportamiento visible que antes de este cambio.
+          */}
+          {moto.showPrice ? (
+            <div className="stat-grid">
+              <div className="stat stat--precio">
+                <span className="small muted">Precio promoción</span>
+                <PrecioContado moto={moto} />
+              </div>
+              <div className="stat">
+                <span className="small muted">Desde</span>
+                <strong>
+                  {formatMXN(moto.monthlyFrom)}
+                  <span className="price-suffix">/mes</span>
+                </strong>
+              </div>
+              <div className="stat">
+                <span className="small muted">Enganche sugerido</span>
+                <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
+              </div>
             </div>
-            <div className="stat">
-              <span className="small muted">Desde</span>
-              <strong>
-                {formatMXN(moto.monthlyFrom)}
-                <span className="price-suffix">/mes</span>
-              </strong>
-            </div>
-            <div className="stat">
-              <span className="small muted">Enganche sugerido</span>
-              <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
-            </div>
-          </div> */}
+          ) : null}
           <FinvaCheckout
             price={cashPrice(moto)}
             suggestedDownPayment={moto.suggestedDownPayment}
