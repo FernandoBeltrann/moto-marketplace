@@ -13,4 +13,12 @@ export const site = {
    * Útil en local hasta que todas las filas tengan columna rellena.
    */
   defaultPurchaseUrl: process.env.NEXT_PUBLIC_DEFAULT_PURCHASE_URL?.trim() || null,
+  /** Logo cuadrado (public/) usado como Schema.org Organization.logo y como imagen OG por defecto. */
+  logoPath: '/logo-motoclick.png',
+  /** Perfiles oficiales de marca — alimentan Organization.sameAs en el JSON-LD. */
+  social: {
+    facebook: 'https://www.facebook.com/motoclick',
+    instagram: 'https://www.instagram.com/motoclick.mx/',
+    tiktok: 'https://www.tiktok.com/@finvatecapp',
+  },
 };
