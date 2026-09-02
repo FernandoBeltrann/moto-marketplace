@@ -95,12 +95,20 @@ export default function StudioPage() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [sessionUser, setSessionUser] = useState<{ email: string; role: string } | null>(null);
 
   const refreshList = useCallback(async () => {
     const r = await fetch('/api/cms/pages').then((x) => x.json());
     setPages(r.pages ?? []);
   }, []);
   useEffect(() => { refreshList(); }, [refreshList]);
+  useEffect(() => {
+    fetch('/api/cms/auth/me').then((r) => (r.ok ? r.json() : null)).then((r) => setSessionUser(r?.user ?? null)).catch(() => {});
+  }, []);
+  async function logout() {
+    await fetch('/api/cms/auth/logout', { method: 'POST' }).catch(() => {});
+    window.location.href = '/studio/login';
+  }
   useEffect(() => { fetch('/api/cms/existing').then((x) => x.json()).then((r) => setExisting(r.pages || [])).catch(() => {}); }, []);
   useEffect(() => {
     fetch('/api/cms/media').then((x) => x.json()).then((r) => setMedia(r.images || [])).catch(() => {});
@@ -323,6 +331,12 @@ export default function StudioPage() {
       )}
       {/* IZQUIERDA: páginas + importar */}
       <aside style={{ ...box, overflowY: 'auto', maxHeight: '96vh' }}>
+        {sessionUser && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, fontSize: 12, color: '#777' }}>
+            <span>{sessionUser.email} · {sessionUser.role === 'admin' ? 'admin' : 'editor'}</span>
+            <button style={{ ...btn, padding: '3px 8px', fontSize: 11 }} onClick={logout}>Salir</button>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <strong>Páginas</strong><button style={btnPri} onClick={newPage}>+ Nueva</button>
         </div>
