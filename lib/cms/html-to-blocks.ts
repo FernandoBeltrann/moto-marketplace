@@ -36,7 +36,7 @@ export function htmlToBlocks(html: string): CmsBlock[] {
     const body = m[3] || '';
     if (/^h[1-6]$/.test(tag)) {
       const lvl = Number(tag[1]);
-      raw.push({ type: 'heading', level: lvl >= 3 ? 3 : lvl, text: inner(body) });
+      raw.push({ type: 'heading', level: lvl >= 3 ? 3 : lvl, text: inner(body), id: attr(attrs, 'id') || undefined });
     } else if (tag === 'p') {
       const t = body.trim();
       if (t) raw.push({ type: 'paragraph', html: t });
