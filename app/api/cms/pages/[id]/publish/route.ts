@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { publishPage } from '@/lib/cms/pages';
+import { publishBlogPostIfDraft } from '@/lib/blog';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +18,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const page = await publishPage(id);
     if (!page) return NextResponse.json({ error: 'No encontrada' }, { status: 404 });
+    // Un post de blog creado desde "+ Nuevo artículo" nace en borrador
+    // (published: false) — al publicar la página CMS por primera vez, el
+    // post real también pasa a publicado (nunca al revés: si ya estaba
+    // publicado, esto no hace nada).
+    if (page.bindingKind === 'blog' && page.bindingKey) {
+      const postId = page.bindingKey.slice('blog:'.length);
+      await publishBlogPostIfDraft(postId).catch(() => {});
+    }
     revalidatePath(page.urlPath);
     return NextResponse.json({ page });
   } catch (err) {

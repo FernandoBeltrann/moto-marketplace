@@ -25,8 +25,10 @@ export type SiteNode = {
   hasUnpublishedChanges?: boolean;
   /** id de la página CMS ya creada (bindable con página existente, o standalone). */
   pageId?: string;
-  /** Solo 'section': permite crear una página CMS nueva (standalone) bajo esta sección. */
+  /** Solo 'section': permite crear contenido nuevo bajo esta sección. */
   canCreateChild?: boolean;
+  /** 'blog' = crea un post real nuevo (blog_posts + página CMS bound); default/'standalone' = página CMS suelta. */
+  createKind?: 'standalone' | 'blog';
   childSlugPrefix?: string;
   children?: SiteNode[];
 };
@@ -97,6 +99,8 @@ export async function getSiteMap(): Promise<SiteNode[]> {
     label: 'Blog',
     href: '/blog',
     kind: 'section',
+    canCreateChild: true,
+    createKind: 'blog',
     children: [{ id: 'blog-posts', label: `Artículos (${posts.length})`, kind: 'section', children: posts.map(bindableNode) }],
   });
 

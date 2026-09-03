@@ -23,7 +23,7 @@ type SiteNode = {
   status?: 'none' | 'draft' | 'published';
   hasUnpublishedChanges?: boolean;
   pageId?: string;
-  canCreateChild?: boolean; childSlugPrefix?: string; children?: SiteNode[];
+  canCreateChild?: boolean; createKind?: 'standalone' | 'blog'; childSlugPrefix?: string; children?: SiteNode[];
 };
 type Binding = { kind: CmsBindingKind; key: string | null; urlPath: string };
 type ExistingEntry = { key: string; label: string; html: string; schemaType: string; bindingKind: CmsBindingKind; bindingKey: string; urlPath: string };
@@ -88,15 +88,45 @@ function newBlock(type: CmsBlockType): CmsBlock {
 }
 const EMPTY_DOC: CmsPageDoc = { slug: '', title: 'Nueva página', description: '', blocks: [], schema: { type: 'WebPage' } };
 
+/** Dónde puede vivir una página standalone nueva — el slug siempre es el último tramo de la URL. */
+const PREFIX_OPTIONS: { value: string; label: string }[] = [
+  { value: '/p', label: 'Página independiente (/p/…)' },
+  { value: '', label: 'Raíz del sitio (/…)' },
+  { value: '/promos', label: 'Promociones (/promos/…)' },
+  { value: '/blog', label: 'Debajo de Blog (/blog/…)' },
+  { value: '/motos', label: 'Debajo de Motos (/motos/…)' },
+  { value: '__custom__', label: 'Personalizado…' },
+];
+
+function composeUrlPath(prefix: string, slug: string): string {
+  const cleanPrefix = prefix.replace(/\/+$/, '');
+  const cleanSlug = (slug || 'pagina').replace(/^\/+/, '');
+  const joined = `${cleanPrefix}/${cleanSlug}`.replace(/\/{2,}/g, '/');
+  return joined.startsWith('/') ? joined : '/' + joined;
+}
+
+/** Al abrir una página standalone existente: separa su urlPath actual en prefijo + slug. */
+function deriveUrlPrefix(urlPath: string, slug: string): { prefix: string; custom: string } {
+  let prefix = urlPath;
+  if (slug && urlPath.endsWith('/' + slug)) {
+    prefix = urlPath.slice(0, urlPath.length - slug.length - 1);
+  }
+  const preset = PREFIX_OPTIONS.find((o) => o.value !== '__custom__' && o.value === prefix);
+  if (preset) return { prefix: preset.value, custom: '' };
+  return { prefix: '__custom__', custom: prefix || '/' };
+}
+
 export default function StudioPage() {
   const [pages, setPages] = useState<CmsPage[]>([]);
   const [existing, setExisting] = useState<ExistingEntry[]>([]);
   const [pageId, setPageId] = useState<string | null>(null);
   const [binding, setBinding] = useState<Binding>({ kind: 'standalone', key: null, urlPath: '' });
+  const [urlPrefix, setUrlPrefix] = useState('/p');
+  const [customPrefix, setCustomPrefix] = useState('');
   const [doc, setDoc] = useState<CmsPageDoc>(EMPTY_DOC);
   const [versions, setVersions] = useState<CmsPageVersion[]>([]);
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
-  const [tab, setTab] = useState<'build' | 'html' | 'preview' | 'json' | 'seo' | 'map' | 'components'>('build');
+  const [tab, setTab] = useState<'build' | 'html' | 'preview' | 'json' | 'seo' | 'map' | 'components'>('map');
   const [seo, setSeo] = useState<{ metaTags?: string; headTags?: string; sitemapXml?: string; nodes?: string[]; schemaType?: string; sitemap?: { loc: string; lastmod: string } } | null>(null);
   const [media, setMedia] = useState<{ name: string; url: string; source: string }[]>([]);
   const [links, setLinks] = useState<{ label: string; href: string; group: string }[]>([]);
@@ -150,6 +180,10 @@ export default function StudioPage() {
       setPageId(d.page.id); setDoc(d.page.draftDoc); setVersions(d.versions);
       setStatus(d.page.status); setHtmlBuf(renderDoc(d.page.draftDoc)); setTab('build'); setNote(null);
       setBinding({ kind: d.page.bindingKind, key: d.page.bindingKey, urlPath: d.page.urlPath });
+      if (d.page.bindingKind === 'standalone') {
+        const { prefix, custom } = deriveUrlPrefix(d.page.urlPath, d.page.draftDoc.slug);
+        setUrlPrefix(prefix); setCustomPrefix(custom);
+      }
       loadComponentDefaults(d.page.bindingKind, d.page.bindingKey);
     } finally {
       setBusy('');
@@ -160,6 +194,7 @@ export default function StudioPage() {
     setPageId(null); setDoc({ ...EMPTY_DOC, blocks: [newBlock('heading')] }); setVersions([]);
     setStatus('draft'); setTab('build'); setHtmlBuf(''); setNote('Página nueva — agrega bloques y guarda.');
     setBinding({ kind: 'standalone', key: null, urlPath: '' });
+    setUrlPrefix('/p'); setCustomPrefix('');
     setComponentDefaults({});
   }
 
@@ -202,6 +237,16 @@ export default function StudioPage() {
     const r = (await jpost('/api/cms/preview-meta', { doc: { ...doc, slug: doc.slug || slugify(doc.title) } })) as typeof seo;
     setBusy(''); setSeo(r);
   }
+
+  // El slug siempre manda el último tramo de la URL en páginas standalone —
+  // cambiar el dropdown de destino o el slug recompone binding.urlPath solo.
+  useEffect(() => {
+    if (binding.kind !== 'standalone') return;
+    const prefix = urlPrefix === '__custom__' ? customPrefix : urlPrefix;
+    const nextSlug = doc.slug || slugify(doc.title);
+    const next = composeUrlPath(prefix, nextSlug);
+    setBinding((b) => (b.kind === 'standalone' && b.urlPath === next ? b : { ...b, urlPath: next }));
+  }, [binding.kind, urlPrefix, customPrefix, doc.slug, doc.title]);
 
   const componentDefs = getComponentDefsFor(binding.kind, binding.key);
   function setComponentField(componentId: string, fieldKey: string, value: string | number) {
@@ -261,8 +306,29 @@ export default function StudioPage() {
     setDoc({ slug: prefix, title: 'Nueva subpágina', description: '', blocks: [newBlock('heading')], schema: { type: 'WebPage', breadcrumb: [{ name: node.label, url: node.href || '/' }] } });
     setVersions([]); setStatus('draft'); setTab('build'); setHtmlBuf('');
     setBinding({ kind: 'standalone', key: null, urlPath: prefix ? `/p/${prefix}` : '' });
+    setUrlPrefix('/p'); setCustomPrefix('');
     setComponentDefaults({});
     setNote(`Nueva subpágina bajo "${node.label}". Prefijo de slug sugerido: "${prefix}".`);
+  }
+
+  /** "+ Nuevo artículo" en la sección Blog del Mapa del sitio: crea el post
+   * real (blog_posts, en borrador) y abre de inmediato su página CMS bound
+   * para escribir el contenido — ver /api/cms/blog-posts. */
+  async function createBlogPost() {
+    setBusy('Creando artículo…');
+    const r = (await jpost('/api/cms/blog-posts', { title: 'Nuevo artículo' })) as {
+      post?: { id: string; slug: string; title: string; urlPath: string };
+      error?: string;
+    };
+    setBusy('');
+    if (!r.post) { setNote('Error al crear el artículo: ' + (r.error || 'desconocido')); return; }
+    setPageId(null);
+    setDoc({ slug: r.post.slug, title: r.post.title, description: '', blocks: [newBlock('heading')], schema: { type: 'Article' } });
+    setVersions([]); setStatus('draft'); setTab('build'); setHtmlBuf('');
+    setBinding({ kind: 'blog', key: `blog:${r.post.id}`, urlPath: r.post.urlPath });
+    loadComponentDefaults('blog', `blog:${r.post.id}`);
+    await refreshList();
+    setNote(`Artículo creado en ${r.post.urlPath} (sin publicar) — escribe el contenido y guarda; se publica junto con la página.`);
   }
   function statusDot(node: SiteNode): { color: string; label: string } {
     if (node.status === 'published' && node.hasUnpublishedChanges) return { color: '#dd5a10', label: 'publicada · con cambios sin publicar' };
@@ -282,7 +348,12 @@ export default function StudioPage() {
           {node.kind !== 'section' && <button style={mini} onClick={() => openMapNode(node)}>editar</button>}
           {node.href && <a style={mini} href={node.href} target="_blank" rel="noreferrer">ver</a>}
           {node.href && node.pageId && <a style={{ ...mini, borderColor: '#dd5a10', color: '#97400c' }} href={`${node.href}?cmsPreview=1`} target="_blank" rel="noreferrer">vista previa borrador</a>}
-          {node.canCreateChild && <button style={{ ...mini, borderColor: '#dd5a10', color: '#97400c' }} onClick={() => createUnder(node)}>+ subpágina</button>}
+          {node.canCreateChild && node.createKind === 'blog' && (
+            <button style={{ ...mini, borderColor: '#dd5a10', color: '#97400c' }} onClick={() => createBlogPost()}>+ nuevo artículo</button>
+          )}
+          {node.canCreateChild && node.createKind !== 'blog' && (
+            <button style={{ ...mini, borderColor: '#dd5a10', color: '#97400c' }} onClick={() => createUnder(node)}>+ subpágina</button>
+          )}
         </div>
         {(node.children || []).map((c) => renderMapNode(c, depth + 1))}
       </div>
@@ -591,13 +662,28 @@ export default function StudioPage() {
         <div style={box}>
           <div style={lbl}>Título</div>
           <input style={inp} value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} />
-          <div style={lbl}>Slug</div>
+          {binding.kind === 'standalone' && (
+            <>
+              <div style={lbl}>¿A dónde quieren que se dirija?</div>
+              <select style={inp} value={urlPrefix} onChange={(e) => setUrlPrefix(e.target.value)}>
+                {PREFIX_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              {urlPrefix === '__custom__' && (
+                <input
+                  style={{ ...inp, marginTop: 6 }}
+                  value={customPrefix}
+                  placeholder="/mi-seccion"
+                  onChange={(e) => { let v = e.target.value; if (v && !v.startsWith('/')) v = '/' + v; setCustomPrefix(v); }}
+                />
+              )}
+            </>
+          )}
+          <div style={lbl}>Slug {binding.kind === 'standalone' && '(el último tramo de la URL)'}</div>
           <input style={inp} value={doc.slug} placeholder={slugify(doc.title)} onChange={(e) => setDoc({ ...doc, slug: e.target.value })} disabled={!!pageId} />
           <div style={lbl}>URL {binding.kind !== 'standalone' && '(real — la controla la página de origen)'}</div>
-          {binding.kind === 'standalone' ? (
-            <input style={inp} value={binding.urlPath} placeholder={`/p/${doc.slug || slugify(doc.title)}`} onChange={(e) => { let v = e.target.value; if (v && !v.startsWith('/')) v = '/' + v; setBinding({ ...binding, urlPath: v }); }} />
-          ) : (
-            <input style={{ ...inp, background: '#f3f2ee', color: '#888' }} value={binding.urlPath} disabled />
+          <input style={{ ...inp, background: '#f3f2ee', color: '#888' }} value={binding.urlPath} disabled />
+          {binding.kind === 'standalone' && !pageId && (
+            <div style={{ fontSize: 11, color: '#999', marginTop: -4, marginBottom: 4 }}>El slug siempre define este último tramo — cambia de destino o de slug arriba, no aquí.</div>
           )}
           <div style={lbl}>Schema.org</div>
           <select style={inp} value={doc.schema.type} onChange={(e) => setDoc({ ...doc, schema: { ...doc.schema, type: e.target.value as CmsPageDoc['schema']['type'] } })}>

@@ -170,3 +170,32 @@ de clientes" (`reviews.title`, H2/H3) y a los dos títulos de
 `productHighlights` ("¿Para quién es buena?" H2/H3 y "Ficha rápida" H2/H3)
 — `allowedLevels` limita las opciones que ve marketing (por ahora H2/H3;
 H1 se reserva para el título principal de cada página).
+
+## Mapa del sitio como punto de entrada + creación de contenido nuevo
+
+El Studio ahora abre directo en "Mapa del sitio" (antes abría en "Constructor"
+con nada cargado) — de ahí se elige qué editar (un click en "editar" en
+cualquier nodo, importa si hace falta) o qué crear:
+
+- **"+ subpágina"** en "Páginas nuevas": como antes, una página CMS suelta.
+- **"+ nuevo artículo"** en "Blog": ahora SÍ crea un post real nuevo (fila en
+  `blog_posts`, `published: false`) y abre de inmediato su página CMS bound
+  (`blog:<id>`) para escribir el contenido — ver
+  `POST /api/cms/blog-posts` (`lib/blog.ts::createBlogPostDraft`). Al
+  publicar la página CMS por primera vez, el post real también pasa a
+  publicado automáticamente (`publishBlogPostIfDraft`, enganchado en
+  `/api/cms/pages/[id]/publish`) — nunca antes, para no exponer una URL real
+  con el placeholder "Nuevo artículo" mientras se escribe.
+
+## URL configurable con slug vinculado (páginas standalone)
+
+Antes el campo "URL" era texto libre, desconectado del slug. Ahora, para una
+página standalone nueva o existente: un dropdown "¿A dónde quieren que se
+dirija?" (`/p`, raíz, `/promos`, `/blog`, `/motos`, o "Personalizado…" con
+su propio campo) fija el PREFIJO, y el slug (el mismo campo de siempre)
+siempre es el último tramo — la URL final se recalcula sola
+(`composeUrlPath` en `app/studio/page.tsx`) cada vez que cambian cualquiera
+de los dos. Al abrir una página standalone ya existente, su URL actual se
+separa en prefijo+slug automáticamente (`deriveUrlPrefix`) para que quede
+igual de editable. Las páginas bound (moto/blog/estática) no usan esto — su
+URL la sigue controlando la página real de origen.

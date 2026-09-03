@@ -76,3 +76,45 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefi
   const list = await getBlogPosts();
   return list.find((p) => p.slug === slug);
 }
+
+/**
+ * Crea un post en borrador (`published: false`) para que el Studio pueda
+ * abrirlo de inmediato como página CMS bound (`blog:<id>`) — ver
+ * `app/api/cms/blog-posts/route.ts` y el botón "+ Nuevo artículo" del Mapa
+ * del sitio. El contenido real se escribe después en el Studio; esta fila
+ * es solo el ancla en `blog_posts` (id + slug estables) que necesita el
+ * binding. No aparece en `/blog` ni es alcanzable por URL hasta publicarse
+ * (ver `publishBlogPostIfDraft`).
+ */
+export async function createBlogPostDraft(title: string): Promise<BlogPost> {
+  const supabase = createServiceSupabase();
+  const slug = `${title ? slugifyForBlog(title) : 'nuevo-articulo'}-${Date.now().toString(36)}`;
+  const { data, error } = await supabase
+    .from(blogPostsTable())
+    .insert({ title: title || 'Nuevo artículo', slug, body: '', published: false })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return mapBlogPostRow(data as Record<string, unknown>);
+}
+
+/** Publica el post subyacente si todavía estaba en borrador (no lo despublica nunca). */
+export async function publishBlogPostIfDraft(id: string): Promise<void> {
+  const supabase = createServiceSupabase();
+  const { data } = await supabase.from(blogPostsTable()).select('published, published_at').eq('id', id).single();
+  if (!data || data.published) return;
+  await supabase
+    .from(blogPostsTable())
+    .update({ published: true, published_at: data.published_at || new Date().toISOString() })
+    .eq('id', id);
+}
+
+function slugifyForBlog(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'articulo';
+}
