@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { publishPage } from '@/lib/cms/pages';
-import { publishBlogPostIfDraft } from '@/lib/blog';
+import { publishBlogPostIfDraft, syncBlogPostMeta } from '@/lib/blog';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +25,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (page.bindingKind === 'blog' && page.bindingKey) {
       const postId = page.bindingKey.slice('blog:'.length);
       await publishBlogPostIfDraft(postId).catch(() => {});
+      // El listado público de /blog (BlogPostCard) lee blog_posts.title
+      // directo, sin pasar por el override del CMS — hay que mantenerlo al
+      // día en cada publicación, no solo en la primera.
+      await syncBlogPostMeta(postId, page.title, page.publishedDoc?.description).catch(() => {});
     }
     revalidatePath(page.urlPath);
     return NextResponse.json({ page });

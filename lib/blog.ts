@@ -143,6 +143,22 @@ export async function publishBlogPostIfDraft(id: string): Promise<void> {
     .eq('id', id);
 }
 
+/**
+ * Sincroniza el título (y opcionalmente el excerpt) REALES del post con lo
+ * que quedó publicado en el CMS. Sin esto, /blog (el listado público) y
+ * cualquier otro lugar que lea blog_posts directo (no vía override) se
+ * quedaban pegados en el título con el que nació el post — ej. "Nuevo
+ * artículo" — aunque ya se hubiera publicado un título real desde el
+ * Studio. Se llama en cada publicación, no solo en la primera.
+ */
+export async function syncBlogPostMeta(id: string, title: string, excerpt?: string | null): Promise<void> {
+  if (!title) return;
+  const supabase = createServiceSupabase();
+  const update: Record<string, unknown> = { title };
+  if (excerpt) update.excerpt = excerpt;
+  await supabase.from(blogPostsTable()).update(update).eq('id', id);
+}
+
 export type RenameBlogSlugResult = { slug: string } | { error: string };
 
 /**

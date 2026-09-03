@@ -50,9 +50,15 @@ export async function getSiteMap(): Promise<SiteNode[]> {
   function bindableNode(bk: BindablePage): SiteNode {
     const page = byBindingKey.get(bk.bindingKey);
     const { status, hasUnpublishedChanges } = statusOf(page);
+    // Para un artículo de blog, bk.label es el título REAL del post
+    // (blog_posts.title) — no cambia solo porque el borrador del CMS tenga
+    // otro título. Si ya existe una página CMS, se prefiere su título (el
+    // que se ve/edita en el Studio) para que el Mapa del sitio no se quede
+    // pegado en "Nuevo artículo" para siempre.
+    const label = bk.bindingKind === 'blog' && page?.title ? page.title : bk.label;
     return {
       id: bk.bindingKey,
-      label: bk.label,
+      label,
       href: bk.urlPath,
       kind: 'bindable',
       bindingKey: bk.bindingKey,
