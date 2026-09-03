@@ -75,7 +75,14 @@ export default async function BlogPostPage({ params, searchParams }: PageProps) 
   // El body del post ya es HTML (Directus). Un override del CMS lo reemplaza
   // por completo — es el mismo tipo de contenido, solo con otro editor.
   const title = override?.title || post.title;
-  const bodyHtml = override ? renderDocHtml(override) : post.body;
+  // El <h1>{title}</h1> ya se pinta aparte, abajo. Si el primer bloque del
+  // override también es un encabezado con ese mismo título (el caso normal,
+  // ya que el título del Studio se toma del primer bloque), se omite aquí
+  // para no duplicarlo visualmente.
+  const overrideBlocks = override && override.blocks[0]?.type === 'heading' && override.blocks[0].text === title
+    ? { ...override, blocks: override.blocks.slice(1) }
+    : override;
+  const bodyHtml = overrideBlocks ? renderDocHtml(overrideBlocks) : post.body;
 
   return (
     <main className="section">

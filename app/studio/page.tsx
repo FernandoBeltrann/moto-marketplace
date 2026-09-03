@@ -232,16 +232,9 @@ export default function StudioPage() {
     setBusy('Adaptando HTML a bloques…');
     const r = (await jpost('/api/cms/parse-html', { html: htmlBuf, title: doc.title, slug: doc.slug, schemaType: doc.schema.type })) as { doc: CmsPageDoc };
     setBusy('');
-    // Si lo pegado empieza con un <h1>, ESE es el título real de la página
-    // — lo usamos como Título y lo quitamos de los bloques para no repetirlo
-    // dos veces (uno como encabezado real de la página, otro como bloque de
-    // contenido). Si no, se conserva el título que ya tenía la página.
-    const first = r.doc.blocks[0];
-    const nextDoc =
-      first && first.type === 'heading' && first.level === 1
-        ? { ...r.doc, title: first.text, blocks: r.doc.blocks.slice(1) }
-        : { ...r.doc, title: doc.title || r.doc.title };
-    setDoc({ ...nextDoc, schema: doc.schema }); setTab('build');
+    // El título ya no se escribe aparte — lo toma solo del primer bloque si
+    // es un encabezado (ver el efecto de sincronización más abajo).
+    setDoc({ ...r.doc, schema: doc.schema }); setTab('build');
     setNote('HTML adaptado a bloques. Revisa y guarda.');
   }
 
@@ -260,6 +253,16 @@ export default function StudioPage() {
     const next = composeUrlPath(prefix, nextSlug);
     setBinding((b) => (b.kind === 'standalone' && b.urlPath === next ? b : { ...b, urlPath: next }));
   }, [binding.kind, urlPrefix, customPrefix, doc.slug, doc.title]);
+
+  // El título ya no se edita a mano: siempre es el texto del primer bloque
+  // cuando ese bloque es un encabezado (para no tener un título "de la CMS"
+  // desincronizado del que ya se ve arriba, en el propio contenido).
+  useEffect(() => {
+    const first = doc.blocks[0];
+    if (first && first.type === 'heading' && first.text && first.text !== doc.title) {
+      setDoc((d) => ({ ...d, title: first.text }));
+    }
+  }, [doc.blocks, doc.title]);
 
   const componentDefs = getComponentDefsFor(binding.kind, binding.key);
   function setComponentField(componentId: string, fieldKey: string, value: string | number) {
@@ -696,8 +699,6 @@ export default function StudioPage() {
       {/* DERECHA: meta + guardar/publicar + versiones + IA opcional */}
       <aside style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: '96vh' }}>
         <div style={box}>
-          <div style={lbl}>Título</div>
-          <input style={inp} value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} />
           {binding.kind === 'standalone' && (
             <>
               <div style={lbl}>¿A dónde quieren que se dirija?</div>
@@ -736,7 +737,6 @@ export default function StudioPage() {
           </select>
           <button style={{ ...btnPri, width: '100%', marginTop: 10 }} onClick={save}>Guardar cambios</button>
           <button style={{ ...btn, width: '100%', marginTop: 6 }} onClick={publish} disabled={!pageId}>Revisar y publicar →</button>
-          {pageId && <a href={binding.urlPath || `/p/${doc.slug}`} target="_blank" rel="noreferrer" style={{ ...btn, display: 'block', textAlign: 'center', marginTop: 6, textDecoration: 'none' }}>Ver página ({status})</a>}
           {pageId && <a href={`${binding.urlPath || `/p/${doc.slug}`}?cmsPreview=1`} target="_blank" rel="noreferrer" style={{ ...btn, display: 'block', textAlign: 'center', marginTop: 6, textDecoration: 'none', borderColor: '#dd5a10', color: '#97400c' }}>Vista previa del borrador</a>}
         </div>
 
