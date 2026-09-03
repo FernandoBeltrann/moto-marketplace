@@ -284,7 +284,12 @@ export default function StudioPage() {
     // Para un artículo de blog el slug del doc NO es solo un dato interno —
     // es (una vez limpio) el mismo que usa la URL real /blog/<slug>. Si lo
     // cambiaron, hay que renombrar el post real ANTES de guardar el doc.
-    if (pageId && binding.kind === 'blog' && binding.key) {
+    // OJO: esto no depende de `pageId` — el post real (blog_posts) ya existe
+    // desde que se crea con "+ nuevo artículo" en el Mapa del sitio, aunque
+    // la página del CMS (cms_pages) todavía no exista (pageId === null en
+    // el primer guardado). Antes este bloque se saltaba en ese primer
+    // guardado y el slug editado a mano se perdía silenciosamente.
+    if (binding.kind === 'blog' && binding.key) {
       const currentRealSlug = binding.urlPath.replace(/^\/blog\//, '');
       const desiredSlug = doc.slug || slugify(doc.title);
       if (desiredSlug && desiredSlug !== currentRealSlug) {
