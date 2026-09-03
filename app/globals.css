@@ -193,9 +193,266 @@ p { color: var(--muted); line-height: 1.6; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 .filters { display: grid; grid-template-columns: 1.2fr repeat(3, .8fr); gap: 12px; margin: 22px 0; }
-.product-hero { padding: 38px 0; }
-.product-grid { display: grid; grid-template-columns: .95fr 1.05fr; gap: 28px; align-items: start; }
+/* ══ Página de producto ══════════════════════════════════════════════════════
+   Jerarquía: la columna de compra manda. El H1 aquí NO usa la escala del hero
+   (clamp 42-78px) porque compite con el precio y el checkout; se baja a una
+   escala de producto y el peso visual se lo lleva el precio. */
+.product-hero { padding: 26px 0 56px; }
+
+/* Breadcrumb semántico: reemplaza el "← Volver" suelto y da contexto de ruta. */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 22px;
+}
+.breadcrumb a {
+  color: var(--muted);
+  border-radius: 6px;
+  transition: color .18s ease;
+}
+.breadcrumb a:hover { color: var(--green-dark); }
+.breadcrumb a:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+.breadcrumb__sep { color: #c3ccc3; }
+.breadcrumb__current { color: var(--text); font-weight: 700; }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+.product-media-col { min-width: 0; }
 .sticky-box { position: sticky; top: 90px; }
+.product-buy { min-width: 0; display: flex; flex-direction: column; }
+
+/* Foto: relación fija en vez de height:430px rígido, para que no recorte en móvil. */
+.product-figure {
+  margin: 0;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: 28px;
+}
+
+/* ── Encabezado de compra ─────────────────────────────────────────────────── */
+.product-head { margin-bottom: 20px; }
+.product-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.product-head__brand { color: var(--green-dark); }
+.product-head__dot { color: #c3ccc3; }
+.product-head__title {
+  margin: 0;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.05;
+  letter-spacing: -.035em;
+  font-weight: 800;
+  text-wrap: balance;
+}
+.product-head__year { color: var(--muted); font-weight: 600; }
+
+/* Respuesta corta AEO (`first_answer`): va bajo el título, antes del precio.
+   Se marca con un filete verde para leerse como dato destacado, no como
+   otro párrafo de descripción. */
+.first-answer {
+  margin: 0 0 18px;
+  padding-left: 14px;
+  border-left: 3px solid var(--green);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--text);
+  text-wrap: pretty;
+}
+
+/* ── Bloque de precio: el ancla visual de la página ───────────────────────── */
+.price-block {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: linear-gradient(160deg, var(--soft), var(--surface) 62%);
+  box-shadow: 0 10px 30px rgba(13, 27, 18, .05);
+}
+.price-block__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.price-block__main .precio-contado,
+.price-block__main .precio-contado--compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px 12px;
+  margin-top: 0;
+}
+.price-block__main .precio-contado__ahora,
+.price-block__main .precio-contado__solo {
+  font-size: clamp(32px, 4.6vw, 44px);
+  font-weight: 900;
+  letter-spacing: -.045em;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.price-block__main .precio-contado__antes { font-size: 16px; }
+
+.price-block__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(13, 27, 18, .09);
+}
+.price-block__meta > div { min-width: 0; }
+.price-block__meta dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.price-block__meta dd {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.price-suffix {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+/* ── Fila de garantías: 3 columnas, ícono arriba y texto debajo ───────────── */
+.trust-row {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 18px;
+}
+/* Los ítems se separan con una regla vertical en vez de bordes de tarjeta:
+   mantiene la fila ligera y evita sumar otra caja junto al brick. */
+.trust-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  text-wrap: pretty;
+}
+.trust-item + .trust-item {
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+}
+.trust-item__icon { color: var(--green); flex-shrink: 0; }
+.trust-item__label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  line-height: 1.3;
+  color: var(--text);
+}
+.trust-item__detail {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ── Secciones de contenido (izquierda) ───────────────────────────────────── */
+.product-section { margin-top: 40px; }
+.product-section__title {
+  font-size: clamp(21px, 2.2vw, 26px);
+  line-height: 1.15;
+  letter-spacing: -.03em;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+.product-section__lead {
+  margin: 0 0 16px;
+  max-width: 62ch;
+  font-size: 15.5px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.chip-row {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+.chip {
+  background: var(--soft);
+  color: var(--green-dark);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* Ficha rápida: lista de definición con reglas, no 4 tarjetas sueltas.
+   Menos cajas = menos ruido y las etiquetas quedan alineadas. */
+.spec-list {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.spec-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.spec-row dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.spec-row dd {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: var(--text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
 .stat { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: white; }
 .stat strong { display: block; font-size: 20px; letter-spacing: -.02em; }
@@ -207,18 +464,6 @@ p { color: var(--muted); line-height: 1.6; }
   font-size: 11px;
   font-weight: 700;
 }
-
-/* Nota de envío: alineada con ícono, separada con un divisor sutil. */
-.shipping-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 16px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  line-height: 1.5;
-}
-.shipping-note__icon { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
 .calculator { background: white; border: 1px solid var(--line); border-radius: 26px; padding: 20px; margin-top: 16px; overflow: hidden; }
 /* Franja inferior dentro de la misma tarjeta: verde opaco (sin transparencia ni blur). */
 .calculator-cta {
@@ -1097,12 +1342,54 @@ p { color: var(--muted); line-height: 1.6; }
 .kpi { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
 .kpi strong { font-size: 26px; display: block; letter-spacing: -.05em; }
 @media (max-width: 860px) {
-  .hero-grid, .product-grid, .two-col { grid-template-columns: 1fr; }
+  .hero-grid, .two-col { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
   .search-panel, .filters { grid-template-columns: 1fr; }
   .nav-links { display: none; }
   .kpi-strip, .stat-grid { grid-template-columns: 1fr 1fr; }
   .hero { padding-top: 42px; }
+
+  /* Producto: la compra sube antes de la ficha técnica y el sticky se libera
+     (en móvil un sticky de columna llena roba toda la pantalla). */
+  .product-grid { grid-template-columns: 1fr; gap: 32px; }
+  .sticky-box { position: static; }
+  .product-buy { order: -1; }
+  .product-section { margin-top: 32px; }
+  .price-block { padding: 18px; }
+}
+
+/* La fila de 3 aguanta mientras la columna de compra sea ancha. Se decide por
+   el ancho del contenedor, no del viewport: entre 861-1040px la columna de
+   compra es la mitad de la pantalla y ya no caben 3 bloques de texto, pero
+   bajo 860px el layout es de 1 columna y vuelven a caber. */
+@media (max-width: 1040px) and (min-width: 861px) {
+  .trust-row { grid-template-columns: 1fr; gap: 12px; }
+  .trust-item {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .trust-item + .trust-item { padding-left: 0; border-left: 0; }
+  .trust-item__icon { align-self: center; }
+}
+
+@media (max-width: 620px) {
+  .trust-row { grid-template-columns: 1fr; gap: 12px; }
+  .trust-item {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .trust-item + .trust-item { padding-left: 0; border-left: 0; }
+  .trust-item__icon { align-self: center; }
+}
+
+@media (max-width: 420px) {
+  .price-block__meta { grid-template-columns: 1fr; }
+  .spec-row { grid-template-columns: 1fr; gap: 2px; }
+  .spec-row dd { text-align: left; }
 }
 
 

@@ -53,6 +53,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** Íconos de la fila de garantías: mismo trazo (1.75) para que se lean como un set. */
+function TrustIcon({ name }: { name: "truck" | "shield" | "bolt" }) {
+  const paths = {
+    truck: (
+      <>
+        <path d="M3 7.5h9.5v8H3z" />
+        <path d="M12.5 10.5H16l3 3v2h-6.5z" />
+        <circle cx="6.5" cy="16.5" r="1.8" />
+        <circle cx="16" cy="16.5" r="1.8" />
+      </>
+    ),
+    shield: (
+      <>
+        <path d="M12 3.5l6.5 2.4v5c0 4-2.7 7.3-6.5 8.6-3.8-1.3-6.5-4.6-6.5-8.6v-5z" />
+        <path d="M9.3 11.8l1.9 1.9 3.6-3.7" />
+      </>
+    ),
+    bolt: <path d="M13.2 3.5L6.4 13h4.6l-.9 7.5L17.6 11H13z" />,
+  };
+  return (
+    <svg
+      className="trust-item__icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
 export default async function ProductPage({ params }: Props) {
   const { brand, slug } = await params;
   const moto = await getMotorcycleByPath(brand, slug);
@@ -62,6 +100,7 @@ export default async function ProductPage({ params }: Props) {
   const jsonLd = buildProductJsonLd(moto, { reviews });
 
   const hasPhoto = Boolean(moto.imageUrl);
+  const specs = Object.entries(moto.specs);
 
   return (
     <main className="product-hero">
@@ -70,22 +109,37 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="container product-grid">
-        <div>
-          <Link href="/motos" className="small muted">
-            ← Volver al catálogo
+
+      <div className="container">
+        <nav className="breadcrumb" aria-label="Ruta de navegación">
+          <Link href="/motos">Catálogo</Link>
+          <span className="breadcrumb__sep" aria-hidden>
+            /
+          </span>
+          <Link href={`/motos?brand=${encodeURIComponent(moto.brand)}`}>
+            {moto.brand}
           </Link>
-          <div
+          <span className="breadcrumb__sep" aria-hidden>
+            /
+          </span>
+          <span className="breadcrumb__current" aria-current="page">
+            {moto.model}
+          </span>
+        </nav>
+      </div>
+
+      <div className="container product-grid">
+        <div className="product-media-col">
+          <figure
             className={
-              "bike-visual" +
+              "bike-visual product-figure" +
               (hasPhoto ? " bike-visual--photo bike-visual--photo-hero" : "")
             }
-            style={{ borderRadius: 32, height: 430, marginTop: 18 }}
           >
             {hasPhoto && moto.imageUrl ? (
               <Image
                 src={moto.imageUrl}
-                alt={`${moto.brand} ${moto.model} ${moto.year}`}
+                alt={`${moto.brand} ${moto.model} ${moto.year} vista lateral`}
                 fill
                 className="bike-visual__img"
                 sizes="(max-width: 900px) 100vw, 560px"
@@ -94,42 +148,60 @@ export default async function ProductPage({ params }: Props) {
             ) : (
               <div className="bike-line" />
             )}
-          </div>
-          <section className="section" style={{ paddingTop: 26 }}>
-            <h2>¿Para quién es buena?</h2>
-            <div className="tags">
+          </figure>
+
+          <section className="product-section" aria-labelledby="para-quien">
+            <h2 id="para-quien" className="product-section__title">
+              ¿Para quién es buena?
+            </h2>
+            <p className="product-section__lead">{moto.shortDescription}</p>
+            <ul className="chip-row">
               {moto.bestFor.map((x) => (
-                <span className="tag" key={x}>
+                <li className="chip" key={x}>
                   {x}
-                </span>
+                </li>
               ))}
-            </div>
-            <p>{moto.shortDescription}</p>
-            <h3>Ficha rápida</h3>
-            <div
-              className="grid"
-              style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-            >
-              {Object.entries(moto.specs).map(([k, v]) => (
-                <div className="stat" key={k}>
-                  <span className="small muted">{k}</span>
-                  <strong>{v}</strong>
+            </ul>
+          </section>
+
+          <section className="product-section" aria-labelledby="ficha">
+            <h2 id="ficha" className="product-section__title">
+              Ficha rápida
+            </h2>
+            <dl className="spec-list">
+              {specs.map(([k, v]) => (
+                <div className="spec-row" key={k}>
+                  <dt>{k}</dt>
+                  <dd>{v}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </section>
         </div>
-        <aside className="sticky-box">
-          <span className="eyebrow">{moto.category}</span>
-          <h1>
-            {moto.brand} {moto.model} {moto.year}
-          </h1>
-          <p>{moto.shortDescription}</p>
-          {moto.firstAnswer ? (
-            <p className="first-answer" style={{ fontWeight: 600 }}>
-              {moto.firstAnswer}
+        <aside className="sticky-box product-buy">
+          <header className="product-head">
+            <p className="product-head__meta">
+              <span className="product-head__brand">{moto.brand}</span>
+              <span className="product-head__dot" aria-hidden>
+                ·
+              </span>
+              <span>{moto.year}</span>
+              <span className="product-head__dot" aria-hidden>
+                ·
+              </span>
+              <span>{moto.category}</span>
             </p>
+            <h1 className="product-head__title">
+              {moto.model}{" "}
+              <span className="product-head__year">{moto.year}</span>
+            </h1>
+          </header>
+
+          {/* Respuesta directa/corta para AEO (columna `first_answer`, opcional). */}
+          {moto.firstAnswer ? (
+            <p className="first-answer">{moto.firstAnswer}</p>
           ) : null}
+
           {/*
             Bloque de precio: controlado por `moto.showPrice` (columna
             `show_price` en Directus, default false). Mientras la columna no
@@ -137,24 +209,27 @@ export default async function ProductPage({ params }: Props) {
             mismo comportamiento visible que antes de este cambio.
           */}
           {moto.showPrice ? (
-            <div className="stat-grid">
-              <div className="stat stat--precio">
-                <span className="small muted">Precio promoción</span>
+            <div className="price-block">
+              <div className="price-block__main">
+                <span className="price-block__label">Precio de contado</span>
                 <PrecioContado moto={moto} />
               </div>
-              <div className="stat">
-                <span className="small muted">Desde</span>
-                <strong>
-                  {formatMXN(moto.monthlyFrom)}
-                  <span className="price-suffix">/mes</span>
-                </strong>
-              </div>
-              <div className="stat">
-                <span className="small muted">Enganche sugerido</span>
-                <strong>{formatMXN(moto.suggestedDownPayment)}</strong>
-              </div>
+              <dl className="price-block__meta">
+                <div>
+                  <dt>Desde</dt>
+                  <dd>
+                    {formatMXN(moto.monthlyFrom)}
+                    <span className="price-suffix">/mes</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Enganche sugerido</dt>
+                  <dd>{formatMXN(moto.suggestedDownPayment)}</dd>
+                </div>
+              </dl>
             </div>
           ) : null}
+
           <FinvaCheckout
             price={cashPrice(moto)}
             suggestedDownPayment={moto.suggestedDownPayment}
@@ -169,17 +244,34 @@ export default async function ProductPage({ params }: Props) {
             }}
             purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
           />
-          <p className="shipping-note small muted">
-            <span className="shipping-note__icon" aria-hidden>
-              🚚
-            </span>
-            <span>
-              Envío incluido en CDMX y área metropolitana. En el resto del país se
-              recoge en agencia, con posibilidad de envío según disponibilidad.
-            </span>
-          </p>
+
+          <ul className="trust-row">
+            <li className="trust-item">
+              <TrustIcon name="truck" />
+              <span className="trust-item__label">Envío incluido en CDMX</span>
+              <span className="trust-item__detail">
+                En el resto del país se recoge en agencia, con envío según
+                disponibilidad.
+              </span>
+            </li>
+            <li className="trust-item">
+              <TrustIcon name="shield" />
+              <span className="trust-item__label">Garantía de agencia</span>
+              <span className="trust-item__detail">
+                Moto nueva, con factura original a tu nombre.
+              </span>
+            </li>
+            <li className="trust-item">
+              <TrustIcon name="bolt" />
+              <span className="trust-item__label">Respuesta en minutos</span>
+              <span className="trust-item__detail">
+                Solicitas tu crédito sin salir de esta página.
+              </span>
+            </li>
+          </ul>
         </aside>
       </div>
+
       <MotorcycleReviews reviews={reviews} />
     </main>
   );
