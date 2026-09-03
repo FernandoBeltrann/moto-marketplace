@@ -138,9 +138,13 @@ envío de formularios, tracking) se queda 100% en código y nunca aparece
 aquí — ni siquiera como campo de solo lectura.
 
 **Cómo agregar un componente nuevo:** los 3 pasos de arriba, en ese orden.
-El registry ya cubre `reviews` (moto) y `catalogEmptyState` (`/motos`) como
-ejemplo funcionando de punta a punta; el resto de componentes marketing-
-relevantes (ej. el copy fijo dentro de `FinvaCheckout` que NO sea el
-checkout en sí, textos de `HeroMotoRotator`, etc.) se agregan igual, uno a
-la vez, según lo que marketing pida — no hace falta migrarlos todos de
-golpe.
+El registry ya cubre, funcionando de punta a punta: en cualquier moto,
+`productHeader` (eyebrow + frase destacada) y `productHighlights`
+("¿Para quién es buena?", descripción corta, ficha rápida/specs — los
+mismos campos que hoy se cargan desde Directus por moto: si marketing no
+escribe nada en el Studio, se sigue viendo el valor real de Directus tal
+cual) y `reviews`; y en `/motos`, `catalogEmptyState`. El resto de
+componentes/campos marketing-relevantes (ej. specs de motos-a-crédito, el
+copy fijo dentro de `FinvaCheckout` que NO sea el checkout en sí, textos de
+`HeroMotoRotator`, etc.) se agregan igual, uno a la vez, según lo que
+marketing pida — no hace falta migrarlos todos de golpe.

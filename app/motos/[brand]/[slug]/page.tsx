@@ -21,6 +21,7 @@ import { getCmsOverrideForRequest } from "@/lib/cms/overrides";
 import { renderDocHtml } from "@/lib/cms/render";
 import { buildPageJsonLd } from "@/lib/cms/schema-jsonld";
 import { productPath as motoProductPath } from "@/lib/catalog";
+import { parseTags, parseKeyValue } from "@/lib/cms/component-values";
 
 export const revalidate = 120;
 
@@ -75,6 +76,16 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   const overrideHtml = override ? renderDocHtml(override) : null;
   const overrideJsonLd = override ? buildPageJsonLd(override, motoProductPath(moto)) : [];
 
+  // Config de componentes (lib/cms/component-registry.ts): vacío = se queda el
+  // valor real cargado desde Directus (moto.*), tal cual se ve hoy.
+  const cfgHeader = override?.componentConfig?.productHeader;
+  const cfgHighlights = override?.componentConfig?.productHighlights;
+  const eyebrow = (cfgHeader?.category as string) || moto.category;
+  const firstAnswer = (cfgHeader?.firstAnswer as string) || moto.firstAnswer;
+  const bestFor = cfgHighlights?.bestFor ? parseTags(String(cfgHighlights.bestFor)) : moto.bestFor;
+  const shortDescription = (cfgHighlights?.shortDescription as string) || moto.shortDescription;
+  const specs = cfgHighlights?.specs ? parseKeyValue(String(cfgHighlights.specs)) : moto.specs;
+
   const hasPhoto = Boolean(moto.imageUrl);
 
   return (
@@ -117,22 +128,22 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
               <div className="bike-line" />
             )}
           </div>
-          <section className="section" style={{ paddingTop: 26 }}>
+          <section className="section" data-cms-region="productHighlights" style={{ paddingTop: 26 }}>
             <h2>¿Para quién es buena?</h2>
             <div className="tags">
-              {moto.bestFor.map((x) => (
+              {bestFor.map((x) => (
                 <span className="tag" key={x}>
                   {x}
                 </span>
               ))}
             </div>
-            <p>{moto.shortDescription}</p>
+            <p>{shortDescription}</p>
             <h3>Ficha rápida</h3>
             <div
               className="grid"
               style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
             >
-              {Object.entries(moto.specs).map(([k, v]) => (
+              {Object.entries(specs).map(([k, v]) => (
                 <div className="stat" key={k}>
                   <span className="small muted">{k}</span>
                   <strong>{v}</strong>
@@ -142,16 +153,18 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
           </section>
         </div>
         <aside className="sticky-box">
-          <span className="eyebrow">{moto.category}</span>
-          <h1>
-            {moto.brand} {moto.model} {moto.year}
-          </h1>
-          <p>{moto.shortDescription}</p>
-          {moto.firstAnswer ? (
-            <p className="first-answer" style={{ fontWeight: 600 }}>
-              {moto.firstAnswer}
-            </p>
-          ) : null}
+          <div data-cms-region="productHeader">
+            <span className="eyebrow">{eyebrow}</span>
+            <h1>
+              {moto.brand} {moto.model} {moto.year}
+            </h1>
+            <p>{shortDescription}</p>
+            {firstAnswer ? (
+              <p className="first-answer" style={{ fontWeight: 600 }}>
+                {firstAnswer}
+              </p>
+            ) : null}
+          </div>
           {/*
             Bloque de precio: controlado por `moto.showPrice` (columna
             `show_price` en Directus, default false). Mientras la columna no

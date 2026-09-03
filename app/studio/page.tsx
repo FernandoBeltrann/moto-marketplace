@@ -446,9 +446,9 @@ export default function StudioPage() {
                   {c.fields.map((f) => (
                     <div key={f.key} style={{ marginBottom: 8 }}>
                       <div style={lbl}>{f.label}</div>
-                      {f.type === 'textarea' ? (
+                      {f.type === 'textarea' || f.type === 'keyvalue' ? (
                         <textarea
-                          style={{ ...inp, minHeight: 70 }}
+                          style={{ ...inp, minHeight: f.type === 'keyvalue' ? 90 : 70, fontFamily: f.type === 'keyvalue' ? 'monospace' : undefined }}
                           placeholder={f.placeholder}
                           value={(doc.componentConfig?.[c.id]?.[f.key] as string) ?? ''}
                           onFocus={() => highlightRegion(c.id)}

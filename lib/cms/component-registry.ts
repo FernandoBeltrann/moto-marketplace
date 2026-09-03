@@ -21,7 +21,7 @@
  */
 import type { CmsBindingKind } from '@/types/cms';
 
-export type CmsFieldType = 'text' | 'textarea' | 'number';
+export type CmsFieldType = 'text' | 'textarea' | 'number' | 'tags' | 'keyvalue';
 
 export type CmsComponentField = {
   key: string;
@@ -46,6 +46,55 @@ export type CmsComponentDef = {
  */
 const BY_KIND: Partial<Record<CmsBindingKind, CmsComponentDef[]>> = {
   moto: [
+    {
+      id: 'productHeader',
+      label: 'Encabezado de la ficha (columna derecha)',
+      where: 'Arriba del botón de compra: la etiqueta de categoría y la frase destacada bajo el título.',
+      fields: [
+        {
+          key: 'category',
+          label: 'Etiqueta de categoría (eyebrow)',
+          type: 'text',
+          placeholder: '(usa la categoría cargada desde Directus)',
+          help: 'Vacío = se usa la categoría de Directus tal cual.',
+        },
+        {
+          key: 'firstAnswer',
+          label: 'Frase destacada bajo el título',
+          type: 'text',
+          placeholder: '(usa la frase cargada desde Directus)',
+          help: 'Vacío = se usa el valor de Directus tal cual.',
+        },
+      ],
+    },
+    {
+      id: 'productHighlights',
+      label: '"¿Para quién es buena?" + Ficha rápida',
+      where: 'Columna izquierda, debajo de la foto principal.',
+      fields: [
+        {
+          key: 'bestFor',
+          label: 'Etiquetas ("¿Para quién es buena?")',
+          type: 'tags',
+          placeholder: 'Delivery, Trabajo diario, Bajo presupuesto',
+          help: 'Sepáralas con comas. Vacío = usa las etiquetas de Directus.',
+        },
+        {
+          key: 'shortDescription',
+          label: 'Descripción corta',
+          type: 'textarea',
+          placeholder: '(usa la descripción cargada desde Directus)',
+          help: 'Vacío = se usa el valor de Directus tal cual.',
+        },
+        {
+          key: 'specs',
+          label: 'Ficha rápida (specs)',
+          type: 'keyvalue',
+          placeholder: 'Uso: Trabajo\nMotor: 144.8 cc',
+          help: 'Una spec por línea, formato "Clave: Valor". Vacío = usa las specs de Directus.',
+        },
+      ],
+    },
     {
       id: 'reviews',
       label: 'Sección de reseñas',
