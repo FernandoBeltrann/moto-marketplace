@@ -109,6 +109,7 @@ export default function StudioPage() {
   const [note, setNote] = useState<string | null>(null);
   const [sessionUser, setSessionUser] = useState<{ email: string; role: string } | null>(null);
   const livePreviewRef = useRef<HTMLIFrameElement>(null);
+  const [componentDefaults, setComponentDefaults] = useState<Record<string, Record<string, string | number>>>({});
 
   const refreshList = useCallback(async () => {
     const r = await fetch('/api/cms/pages').then((x) => x.json());
@@ -129,6 +130,19 @@ export default function StudioPage() {
     fetch('/api/cms/site-map').then((x) => x.json()).then((r) => setSiteMap(r.nodes || [])).catch(() => {});
   }, []);
 
+  const loadComponentDefaults = useCallback(async (kind: CmsBindingKind, key: string | null) => {
+    setComponentDefaults({});
+    if (kind === 'standalone') return;
+    try {
+      const r = (await fetch(`/api/cms/component-defaults?kind=${kind}&key=${encodeURIComponent(key || '')}`).then((x) => x.json())) as {
+        defaults?: Record<string, Record<string, string | number>>;
+      };
+      setComponentDefaults(r.defaults || {});
+    } catch {
+      setComponentDefaults({});
+    }
+  }, []);
+
   const loadPage = useCallback(async (id: string) => {
     setBusy('Cargando página…');
     try {
@@ -136,6 +150,7 @@ export default function StudioPage() {
       setPageId(d.page.id); setDoc(d.page.draftDoc); setVersions(d.versions);
       setStatus(d.page.status); setHtmlBuf(renderDoc(d.page.draftDoc)); setTab('build'); setNote(null);
       setBinding({ kind: d.page.bindingKind, key: d.page.bindingKey, urlPath: d.page.urlPath });
+      loadComponentDefaults(d.page.bindingKind, d.page.bindingKey);
     } finally {
       setBusy('');
     }
@@ -145,6 +160,7 @@ export default function StudioPage() {
     setPageId(null); setDoc({ ...EMPTY_DOC, blocks: [newBlock('heading')] }); setVersions([]);
     setStatus('draft'); setTab('build'); setHtmlBuf(''); setNote('Página nueva — agrega bloques y guarda.');
     setBinding({ kind: 'standalone', key: null, urlPath: '' });
+    setComponentDefaults({});
   }
 
   async function importExisting(key: string) {
@@ -156,6 +172,7 @@ export default function StudioPage() {
     const r = (await jpost('/api/cms/parse-html', { html: pg.html, title: pg.label.replace(/^[^·]+· /, ''), schemaType: pg.schemaType })) as { doc: CmsPageDoc };
     setBusy(''); setPageId(null); setDoc(r.doc); setVersions([]); setStatus('draft');
     setBinding({ kind: pg.bindingKind, key: pg.bindingKey, urlPath: pg.urlPath });
+    loadComponentDefaults(pg.bindingKind, pg.bindingKey);
     setHtmlBuf(renderDoc(r.doc)); setTab('build');
     setNote(`Importada "${pg.label}" — al guardar, esto controlará ${pg.urlPath} en vivo (aún no publicado).`);
   }
@@ -244,6 +261,7 @@ export default function StudioPage() {
     setDoc({ slug: prefix, title: 'Nueva subpágina', description: '', blocks: [newBlock('heading')], schema: { type: 'WebPage', breadcrumb: [{ name: node.label, url: node.href || '/' }] } });
     setVersions([]); setStatus('draft'); setTab('build'); setHtmlBuf('');
     setBinding({ kind: 'standalone', key: null, urlPath: prefix ? `/p/${prefix}` : '' });
+    setComponentDefaults({});
     setNote(`Nueva subpágina bajo "${node.label}". Prefijo de slug sugerido: "${prefix}".`);
   }
   function statusDot(node: SiteNode): { color: string; label: string } {
@@ -443,30 +461,66 @@ export default function StudioPage() {
                 <div key={c.id} style={{ border: '1px solid #e6e4de', borderRadius: 10, padding: 12, marginBottom: 12 }}>
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.label}</div>
                   <div style={{ fontSize: 11.5, color: '#999', marginBottom: 8 }}>{c.where}</div>
-                  {c.fields.map((f) => (
-                    <div key={f.key} style={{ marginBottom: 8 }}>
-                      <div style={lbl}>{f.label}</div>
-                      {f.type === 'textarea' || f.type === 'keyvalue' ? (
-                        <textarea
-                          style={{ ...inp, minHeight: f.type === 'keyvalue' ? 90 : 70, fontFamily: f.type === 'keyvalue' ? 'monospace' : undefined }}
-                          placeholder={f.placeholder}
-                          value={(doc.componentConfig?.[c.id]?.[f.key] as string) ?? ''}
-                          onFocus={() => highlightRegion(c.id)}
-                          onChange={(e) => setComponentField(c.id, f.key, e.target.value)}
-                        />
-                      ) : (
-                        <input
-                          style={inp}
-                          type={f.type === 'number' ? 'number' : 'text'}
-                          placeholder={f.placeholder}
-                          value={(doc.componentConfig?.[c.id]?.[f.key] as string | number) ?? ''}
-                          onFocus={() => highlightRegion(c.id)}
-                          onChange={(e) => setComponentField(c.id, f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                        />
-                      )}
-                      {f.help && <div style={{ fontSize: 11, color: '#999' }}>{f.help}</div>}
-                    </div>
-                  ))}
+                  {c.fields.map((f) => {
+                    const def = componentDefaults[c.id]?.[f.key];
+                    const val = (doc.componentConfig?.[c.id]?.[f.key] as string | number | undefined) ?? def ?? '';
+                    const isOverridden = doc.componentConfig?.[c.id]?.[f.key] !== undefined;
+                    return (
+                      <div key={f.key} style={{ marginBottom: 8 }}>
+                        <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {f.label}
+                          {isOverridden && (
+                            <span style={{ fontSize: 10, fontWeight: 400, color: '#dd5a10', background: '#fdece0', borderRadius: 5, padding: '1px 6px' }}>editado</span>
+                          )}
+                        </div>
+                        {f.type === 'heading' ? (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <input
+                              style={{ ...inp, flex: 1 }}
+                              placeholder={f.placeholder}
+                              value={val}
+                              onFocus={() => highlightRegion(c.id)}
+                              onChange={(e) => setComponentField(c.id, f.key, e.target.value)}
+                            />
+                            <select
+                              style={{ ...inp, width: 64, flex: 'none' }}
+                              value={
+                                (doc.componentConfig?.[c.id]?.[`${f.key}Level`] as number | undefined) ??
+                                (componentDefaults[c.id]?.[`${f.key}Level`] as number | undefined) ??
+                                f.defaultLevel ?? 2
+                              }
+                              onFocus={() => highlightRegion(c.id)}
+                              onChange={(e) => setComponentField(c.id, `${f.key}Level`, Number(e.target.value))}
+                            >
+                              {(f.allowedLevels || [1, 2, 3]).map((lvl) => (
+                                <option key={lvl} value={lvl}>H{lvl}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : f.type === 'textarea' || f.type === 'keyvalue' ? (
+                          <textarea
+                            style={{ ...inp, minHeight: f.type === 'keyvalue' ? 90 : 70, fontFamily: f.type === 'keyvalue' ? 'monospace' : undefined }}
+                            placeholder={f.placeholder}
+                            value={val}
+                            onFocus={() => highlightRegion(c.id)}
+                            onChange={(e) => setComponentField(c.id, f.key, e.target.value)}
+                          />
+                        ) : (
+                          <input
+                            style={inp}
+                            type={f.type === 'number' ? 'number' : 'text'}
+                            placeholder={f.placeholder}
+                            value={val}
+                            onFocus={() => highlightRegion(c.id)}
+                            onChange={(e) => setComponentField(c.id, f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
+                          />
+                        )}
+                        {(f.help || !isOverridden) && (
+                          <div style={{ fontSize: 11, color: '#999' }}>{isOverridden ? f.help : 'Mostrando el valor real actual — edítalo para cambiarlo.'}</div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>

@@ -21,7 +21,7 @@
  */
 import type { CmsBindingKind } from '@/types/cms';
 
-export type CmsFieldType = 'text' | 'textarea' | 'number' | 'tags' | 'keyvalue';
+export type CmsFieldType = 'text' | 'textarea' | 'number' | 'tags' | 'keyvalue' | 'heading';
 
 export type CmsComponentField = {
   key: string;
@@ -29,6 +29,13 @@ export type CmsComponentField = {
   type: CmsFieldType;
   placeholder?: string;
   help?: string;
+  /**
+   * Solo para type: 'heading'. El texto se guarda en `key`; el nivel
+   * (1/2/3, ej. <h2>/<h3>) se guarda aparte en `${key}Level` — así el HTML
+   * real queda semánticamente correcto y configurable, no siempre <h2>.
+   */
+  defaultLevel?: 1 | 2 | 3;
+  allowedLevels?: Array<1 | 2 | 3>;
 };
 
 export type CmsComponentDef = {
@@ -73,6 +80,14 @@ const BY_KIND: Partial<Record<CmsBindingKind, CmsComponentDef[]>> = {
       where: 'Columna izquierda, debajo de la foto principal.',
       fields: [
         {
+          key: 'heading',
+          label: 'Título de esta sección',
+          type: 'heading',
+          placeholder: '¿Para quién es buena?',
+          defaultLevel: 2,
+          allowedLevels: [2, 3],
+        },
+        {
           key: 'bestFor',
           label: 'Etiquetas ("¿Para quién es buena?")',
           type: 'tags',
@@ -85,6 +100,14 @@ const BY_KIND: Partial<Record<CmsBindingKind, CmsComponentDef[]>> = {
           type: 'textarea',
           placeholder: '(usa la descripción cargada desde Directus)',
           help: 'Vacío = se usa el valor de Directus tal cual.',
+        },
+        {
+          key: 'specsHeading',
+          label: 'Título de la ficha rápida',
+          type: 'heading',
+          placeholder: 'Ficha rápida',
+          defaultLevel: 3,
+          allowedLevels: [2, 3],
         },
         {
           key: 'specs',
@@ -103,8 +126,10 @@ const BY_KIND: Partial<Record<CmsBindingKind, CmsComponentDef[]>> = {
         {
           key: 'title',
           label: 'Título de la sección',
-          type: 'text',
+          type: 'heading',
           placeholder: 'Opiniones de clientes',
+          defaultLevel: 2,
+          allowedLevels: [2, 3],
         },
       ],
     },

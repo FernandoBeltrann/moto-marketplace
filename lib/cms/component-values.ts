@@ -36,3 +36,9 @@ export function serializeKeyValue(obj: Record<string, string>): string {
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n');
 }
+
+/** Nivel de heading -> tag de HTML real, con fallback seguro. */
+export function headingTag(level: number | undefined, fallback: 1 | 2 | 3 = 2): 'h1' | 'h2' | 'h3' {
+  if (level === 1 || level === 2 || level === 3) return (`h${level}` as 'h1' | 'h2' | 'h3');
+  return (`h${fallback}` as 'h1' | 'h2' | 'h3');
+}

@@ -1,4 +1,5 @@
 import type { MotorcycleReview } from '@/types/motorcycle-review';
+import { headingTag } from '@/lib/cms/component-values';
 
 function averageStars(reviews: MotorcycleReview[]): number {
   if (!reviews.length) return 0;
@@ -18,16 +19,17 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export function MotorcycleReviews({ reviews, title }: { reviews: MotorcycleReview[]; title?: string }) {
+export function MotorcycleReviews({ reviews, title, titleLevel }: { reviews: MotorcycleReview[]; title?: string; titleLevel?: number }) {
   if (!reviews.length) return null;
   const avg = averageStars(reviews);
   const rounded = Math.round(avg * 10) / 10;
+  const Title = headingTag(titleLevel, 2);
 
   return (
     <section className="moto-reviews section" data-cms-region="reviews" aria-labelledby="moto-reviews-title">
       <div className="container">
         <div className="moto-reviews-head">
-          <h2 id="moto-reviews-title">{title || 'Opiniones de clientes'}</h2>
+          <Title id="moto-reviews-title">{title || 'Opiniones de clientes'}</Title>
           <p className="moto-reviews-summary">
             <Stars value={avg} />
             <span className="moto-reviews-score">

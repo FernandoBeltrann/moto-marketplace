@@ -21,7 +21,7 @@ import { getCmsOverrideForRequest } from "@/lib/cms/overrides";
 import { renderDocHtml } from "@/lib/cms/render";
 import { buildPageJsonLd } from "@/lib/cms/schema-jsonld";
 import { productPath as motoProductPath } from "@/lib/catalog";
-import { parseTags, parseKeyValue } from "@/lib/cms/component-values";
+import { parseTags, parseKeyValue, headingTag } from "@/lib/cms/component-values";
 
 export const revalidate = 120;
 
@@ -85,6 +85,10 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   const bestFor = cfgHighlights?.bestFor ? parseTags(String(cfgHighlights.bestFor)) : moto.bestFor;
   const shortDescription = (cfgHighlights?.shortDescription as string) || moto.shortDescription;
   const specs = cfgHighlights?.specs ? parseKeyValue(String(cfgHighlights.specs)) : moto.specs;
+  const highlightsHeading = (cfgHighlights?.heading as string) || '¿Para quién es buena?';
+  const HighlightsHeading = headingTag(cfgHighlights?.headingLevel as number, 2);
+  const specsHeading = (cfgHighlights?.specsHeading as string) || 'Ficha rápida';
+  const SpecsHeading = headingTag(cfgHighlights?.specsHeadingLevel as number, 3);
 
   const hasPhoto = Boolean(moto.imageUrl);
 
@@ -129,7 +133,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
             )}
           </div>
           <section className="section" data-cms-region="productHighlights" style={{ paddingTop: 26 }}>
-            <h2>¿Para quién es buena?</h2>
+            <HighlightsHeading>{highlightsHeading}</HighlightsHeading>
             <div className="tags">
               {bestFor.map((x) => (
                 <span className="tag" key={x}>
@@ -138,7 +142,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
               ))}
             </div>
             <p>{shortDescription}</p>
-            <h3>Ficha rápida</h3>
+            <SpecsHeading>{specsHeading}</SpecsHeading>
             <div
               className="grid"
               style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
@@ -221,7 +225,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
           <div className="container cms-page-body" style={{ maxWidth: 820 }} dangerouslySetInnerHTML={{ __html: overrideHtml }} />
         </section>
       )}
-      <MotorcycleReviews reviews={reviews} title={override?.componentConfig?.reviews?.title as string | undefined} />
+      <MotorcycleReviews reviews={reviews} title={override?.componentConfig?.reviews?.title as string | undefined} titleLevel={override?.componentConfig?.reviews?.titleLevel as number | undefined} />
     </main>
   );
 }

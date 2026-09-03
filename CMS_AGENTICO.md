@@ -148,3 +148,25 @@ componentes/campos marketing-relevantes (ej. specs de motos-a-crédito, el
 copy fijo dentro de `FinvaCheckout` que NO sea el checkout en sí, textos de
 `HeroMotoRotator`, etc.) se agregan igual, uno a la vez, según lo que
 marketing pida — no hace falta migrarlos todos de golpe.
+
+**Pre-llenado con el valor real** (`lib/cms/component-defaults.ts` +
+`GET /api/cms/component-defaults`): cuando el Studio abre/importa una
+página, pide los valores REALES actuales (los mismos que hoy se ven en
+Directus) y los muestra ya escritos en cada campo — así marketing ve
+exactamente qué está a punto de cambiar en vez de un campo vacío. Esto es
+solo de despliegue: mientras no editen nada, `componentConfig` sigue vacío
+y la página real sigue leyendo el dato de Directus tal cual (una etiqueta
+"editado" marca los campos donde sí hay un override guardado). Si agregas
+un componente nuevo al registry, agrega también su entrada en
+`getComponentDefaults()` para que se pre-llene igual — si no, el campo
+simplemente empieza vacío (funciona, pero sin el valor de referencia).
+
+**Nivel de heading configurable** (`type: 'heading'` en el registry): un
+campo de este tipo guarda el texto en `key` y el nivel (`H1`/`H2`/`H3`) en
+`${key}Level`, y el componente real usa `headingTag()`
+(`lib/cms/component-values.ts`) para renderizar la etiqueta HTML correcta
+en vez de tener un `<h2>`/`<h3>` fijo en código. Ya aplicado a "Opiniones
+de clientes" (`reviews.title`, H2/H3) y a los dos títulos de
+`productHighlights` ("¿Para quién es buena?" H2/H3 y "Ficha rápida" H2/H3)
+— `allowedLevels` limita las opciones que ve marketing (por ahora H2/H3;
+H1 se reserva para el título principal de cada página).
