@@ -98,3 +98,49 @@ contenido). Solo `/api/cms/auth/invite` exige `admin`.
 
 Pendiente (fase 2, no bloqueante): pantalla dentro del Studio para que un
 admin invite/gestione usuarios sin usar el script; hoy es CLI o SQL directo.
+
+## Edición de componentes (no solo contenido)
+
+Los bloques (`CmsBlock`) cubren texto/imágenes/botones/FAQ — contenido
+libre. Pero varias páginas usan COMPONENTES de React reales con copy propio
+que no es un bloque (ej. el título "Opiniones de clientes" de
+`MotorcycleReviews`, el mensaje de "sin resultados" del catálogo). Antes no
+había forma de tocar eso desde el Studio sin editar código. Ahora sí, con un
+sistema chico y explícito separado de los bloques:
+
+1. **`lib/cms/component-registry.ts`** — el catálogo de qué props de qué
+   componentes son editables, por `bindingKind` (aplica a TODAS las páginas
+   de ese tipo, ej. cualquier moto) o por `bindingKey` exacta (una página
+   puntual, ej. solo `/motos`). Cada entrada define `id`, `label`, `where`
+   (dónde vive en la página, en palabras simples) y sus `fields`.
+2. El **componente real** (ej. `components/MotorcycleReviews.tsx`) acepta la
+   prop nueva con default = el copy actual hardcodeado, y envuelve la región
+   con `data-cms-region="<id>"` — el mismo id que la llave del registry.
+3. La **página real** (ej. `app/motos/[brand]/[slug]/page.tsx`) lee
+   `override?.componentConfig?.<id>?.<field>` (parte de `CmsPageDoc`, junto a
+   `blocks`) y lo pasa como prop.
+4. **`components/cms/CmsRegionHighlighter.tsx`** — montado una vez en
+   `app/layout.tsx`, solo activo con `?cmsPreview=1` (la misma bandera que ya
+   gatea ver el borrador). Escucha `postMessage({type:'cms-highlight',
+   regionId})` y resalta con un outline naranja + scroll el elemento
+   `[data-cms-region="<regionId>"]` correspondiente.
+5. **Studio** (`app/studio/page.tsx`) — pestaña "Componentes": a la izquierda
+   los campos editables de esta página (según su binding), a la derecha un
+   `<iframe>` con la vista previa EN VIVO del sitio real
+   (`{urlPath}?cmsPreview=1`). Al enfocar un campo, se manda el
+   `postMessage` al iframe y se resalta en naranja la parte exacta de la
+   página que ese campo controla — así es intuitivo a qué corresponde cada
+   edición, sin adivinar.
+
+Regla dura: solo entran al registry props de COPY/presentación. Todo lo
+funcional/transaccional (el checkout de Finva, cálculos de mensualidad,
+envío de formularios, tracking) se queda 100% en código y nunca aparece
+aquí — ni siquiera como campo de solo lectura.
+
+**Cómo agregar un componente nuevo:** los 3 pasos de arriba, en ese orden.
+El registry ya cubre `reviews` (moto) y `catalogEmptyState` (`/motos`) como
+ejemplo funcionando de punta a punta; el resto de componentes marketing-
+relevantes (ej. el copy fijo dentro de `FinvaCheckout` que NO sea el
+checkout en sí, textos de `HeroMotoRotator`, etc.) se agregan igual, uno a
+la vez, según lo que marketing pida — no hace falta migrarlos todos de
+golpe.

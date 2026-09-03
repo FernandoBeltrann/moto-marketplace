@@ -18,16 +18,16 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export function MotorcycleReviews({ reviews }: { reviews: MotorcycleReview[] }) {
+export function MotorcycleReviews({ reviews, title }: { reviews: MotorcycleReview[]; title?: string }) {
   if (!reviews.length) return null;
   const avg = averageStars(reviews);
   const rounded = Math.round(avg * 10) / 10;
 
   return (
-    <section className="moto-reviews section" aria-labelledby="moto-reviews-title">
+    <section className="moto-reviews section" data-cms-region="reviews" aria-labelledby="moto-reviews-title">
       <div className="container">
         <div className="moto-reviews-head">
-          <h2 id="moto-reviews-title">Opiniones de clientes</h2>
+          <h2 id="moto-reviews-title">{title || 'Opiniones de clientes'}</h2>
           <p className="moto-reviews-summary">
             <Stars value={avg} />
             <span className="moto-reviews-score">

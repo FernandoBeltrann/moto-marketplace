@@ -11,8 +11,9 @@
  * Identidad estable: editar una página abierta siempre actualiza su pageId
  * (updateDraft), así el historial de versiones y el rollback son correctos.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CmsBindingKind, CmsBlock, CmsBlockType, CmsPage, CmsPageDoc, CmsPageVersion } from '@/types/cms';
+import { getComponentDefsFor } from '@/lib/cms/component-registry';
 
 type Detail = { page: CmsPage; versions: CmsPageVersion[] };
 type SiteNode = {
@@ -95,7 +96,7 @@ export default function StudioPage() {
   const [doc, setDoc] = useState<CmsPageDoc>(EMPTY_DOC);
   const [versions, setVersions] = useState<CmsPageVersion[]>([]);
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
-  const [tab, setTab] = useState<'build' | 'html' | 'preview' | 'json' | 'seo' | 'map'>('build');
+  const [tab, setTab] = useState<'build' | 'html' | 'preview' | 'json' | 'seo' | 'map' | 'components'>('build');
   const [seo, setSeo] = useState<{ metaTags?: string; headTags?: string; sitemapXml?: string; nodes?: string[]; schemaType?: string; sitemap?: { loc: string; lastmod: string } } | null>(null);
   const [media, setMedia] = useState<{ name: string; url: string; source: string }[]>([]);
   const [links, setLinks] = useState<{ label: string; href: string; group: string }[]>([]);
@@ -107,6 +108,7 @@ export default function StudioPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [sessionUser, setSessionUser] = useState<{ email: string; role: string } | null>(null);
+  const livePreviewRef = useRef<HTMLIFrameElement>(null);
 
   const refreshList = useCallback(async () => {
     const r = await fetch('/api/cms/pages').then((x) => x.json());
@@ -182,6 +184,20 @@ export default function StudioPage() {
     setBusy('Generando Schema.org y sitemap…');
     const r = (await jpost('/api/cms/preview-meta', { doc: { ...doc, slug: doc.slug || slugify(doc.title) } })) as typeof seo;
     setBusy(''); setSeo(r);
+  }
+
+  const componentDefs = getComponentDefsFor(binding.kind, binding.key);
+  function setComponentField(componentId: string, fieldKey: string, value: string | number) {
+    setDoc((d) => ({
+      ...d,
+      componentConfig: {
+        ...d.componentConfig,
+        [componentId]: { ...(d.componentConfig?.[componentId] || {}), [fieldKey]: value },
+      },
+    }));
+  }
+  function highlightRegion(regionId: string) {
+    livePreviewRef.current?.contentWindow?.postMessage({ type: 'cms-highlight', regionId }, '*');
   }
 
   async function save() {
@@ -388,9 +404,9 @@ export default function StudioPage() {
       {/* CENTRO: constructor / html / preview / json */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ ...box, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {(['build', 'html', 'preview', 'json', 'seo', 'map'] as const).map((t) => (
+          {(['build', 'components', 'html', 'preview', 'json', 'seo', 'map'] as const).map((t) => (
             <button key={t} style={t === tab ? btnPri : btn} onClick={() => { if (t === 'html') setHtmlBuf(renderDoc(doc)); if (t === 'seo') loadSeo(); setTab(t); }}>
-              {t === 'build' ? 'Constructor' : t === 'html' ? 'HTML' : t === 'preview' ? 'Vista previa' : t === 'json' ? 'JSON' : t === 'seo' ? 'Schema / SEO' : 'Mapa del sitio'}
+              {t === 'build' ? 'Constructor' : t === 'components' ? 'Componentes' : t === 'html' ? 'HTML' : t === 'preview' ? 'Vista previa' : t === 'json' ? 'JSON' : t === 'seo' ? 'Schema / SEO' : 'Mapa del sitio'}
             </button>
           ))}
           {busy && <span style={{ color: '#dd5a10', marginLeft: 8 }}>{busy}</span>}
@@ -405,6 +421,67 @@ export default function StudioPage() {
             </div>
             {doc.blocks.length === 0 && <div style={{ color: '#999', fontStyle: 'italic' }}>Sin bloques. Agrega un módulo o importa HTML.</div>}
             {doc.blocks.map((b, i) => BlockCard(b, i))}
+          </div>
+        )}
+
+        {tab === 'components' && (
+          <div style={{ ...box, display: 'grid', gridTemplateColumns: 'minmax(260px, 340px) 1fr', gap: 16 }}>
+            <div>
+              <strong>Componentes de esta página</strong>
+              <p style={{ fontSize: 12.5, color: '#888', margin: '6px 0 14px' }}>
+                Esto NO son bloques de contenido — son props reales de componentes de código
+                (ej. el título de "Opiniones de clientes"). Al enfocar un campo, se resalta en
+                naranja la parte exacta de la página a la derecha. Lo funcional (checkout,
+                cálculos, formularios) no aparece aquí — se queda 100% en código.
+              </p>
+              {componentDefs.length === 0 && (
+                <div style={{ color: '#999', fontStyle: 'italic' }}>
+                  Esta página no tiene componentes registrados como editables todavía.
+                </div>
+              )}
+              {componentDefs.map((c) => (
+                <div key={c.id} style={{ border: '1px solid #e6e4de', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.label}</div>
+                  <div style={{ fontSize: 11.5, color: '#999', marginBottom: 8 }}>{c.where}</div>
+                  {c.fields.map((f) => (
+                    <div key={f.key} style={{ marginBottom: 8 }}>
+                      <div style={lbl}>{f.label}</div>
+                      {f.type === 'textarea' ? (
+                        <textarea
+                          style={{ ...inp, minHeight: 70 }}
+                          placeholder={f.placeholder}
+                          value={(doc.componentConfig?.[c.id]?.[f.key] as string) ?? ''}
+                          onFocus={() => highlightRegion(c.id)}
+                          onChange={(e) => setComponentField(c.id, f.key, e.target.value)}
+                        />
+                      ) : (
+                        <input
+                          style={inp}
+                          type={f.type === 'number' ? 'number' : 'text'}
+                          placeholder={f.placeholder}
+                          value={(doc.componentConfig?.[c.id]?.[f.key] as string | number) ?? ''}
+                          onFocus={() => highlightRegion(c.id)}
+                          onChange={(e) => setComponentField(c.id, f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
+                        />
+                      )}
+                      {f.help && <div style={{ fontSize: 11, color: '#999' }}>{f.help}</div>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div style={{ border: '1px solid #e6e4de', borderRadius: 10, overflow: 'hidden', minHeight: 420 }}>
+              {binding.urlPath ? (
+                <iframe
+                  ref={livePreviewRef}
+                  title="vista previa en vivo"
+                  src={`${binding.urlPath}?cmsPreview=1`}
+                  style={{ width: '100%', height: '100%', minHeight: 420, border: 0, background: '#fff' }}
+                />
+              ) : (
+                <div style={{ padding: 16, color: '#999' }}>Guarda la página para ver la vista previa en vivo.</div>
+              )}
+            </div>
           </div>
         )}
 

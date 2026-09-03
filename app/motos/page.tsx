@@ -47,7 +47,7 @@ export default async function CatalogPage({ searchParams }: Props) {
           </>
         )}
         <Suspense fallback={<p className="small muted">Cargando catálogo…</p>}>
-          <CatalogClient motos={motos} />
+          <CatalogClient motos={motos} emptyStateMessage={override?.componentConfig?.catalogEmptyState?.message as string | undefined} />
         </Suspense>
       </div>
     </main>

@@ -208,7 +208,7 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
           <div className="container cms-page-body" style={{ maxWidth: 820 }} dangerouslySetInnerHTML={{ __html: overrideHtml }} />
         </section>
       )}
-      <MotorcycleReviews reviews={reviews} />
+      <MotorcycleReviews reviews={reviews} title={override?.componentConfig?.reviews?.title as string | undefined} />
     </main>
   );
 }

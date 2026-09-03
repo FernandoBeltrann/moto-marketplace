@@ -71,6 +71,17 @@ export type CmsPageDoc = {
   ogImageUrl?: string | null;
   blocks: CmsBlock[];
   schema: CmsSchemaMeta;
+  /**
+   * Config editable de COMPONENTES reales de la página (no bloques de
+   * contenido) — ej. el título de la sección de reseñas, el mensaje de "sin
+   * resultados" del catálogo. Llave = id del componente en
+   * `lib/cms/component-registry.ts` (mismo id que el atributo
+   * `data-cms-region` en el componente real, usado para resaltarlo en la
+   * vista previa embebida del Studio). Solo viven aquí props de COPY/
+   * presentación explícitamente registradas — nunca lógica funcional
+   * (checkout, cálculos, envío de formularios), que se queda 100% en código.
+   */
+  componentConfig?: Record<string, Record<string, string | number | boolean>>;
 };
 
 export type CmsPageStatus = 'draft' | 'published';

@@ -3,6 +3,7 @@ import './globals.css';
 import Link from 'next/link';
 import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
 import { GoogleTag } from '@/components/GoogleTag';
+import { CmsRegionHighlighter } from '@/components/cms/CmsRegionHighlighter';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
 import { PostHogInit } from '@/components/PostHogInit';
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es-MX">
       <body>
         <PostHogInit token={posthogToken} />
+        <CmsRegionHighlighter />
         <GoogleTagManager />
         <GoogleTag />
         <MetaPixel />
