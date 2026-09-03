@@ -9,7 +9,7 @@
  * bindingKey es la llave que las páginas reales usan para buscar su
  * override (ver lib/cms/overrides.ts) — moto:<id>, blog:<id>, static:<key>.
  */
-import { getBlogPosts } from '@/lib/blog';
+import { getBlogPostsAny } from '@/lib/blog';
 import { getMotorcycles, cashPrice, productPath } from '@/lib/catalog';
 import { blogPostPath } from '@/lib/blog';
 import type { CmsSchemaMeta } from '@/types/cms';
@@ -176,7 +176,7 @@ export async function getBindablePages(): Promise<BindablePage[]> {
   }
 
   try {
-    const posts = await getBlogPosts();
+    const posts = await getBlogPostsAny();
     for (const p of posts) {
       out.push({
         bindingKey: `blog:${p.id}`,

@@ -157,13 +157,24 @@ export async function updateDraft(
   const page = await getPageById(pageId);
   if (!page) throw new Error('Página no encontrada');
   const nextVersion = page.currentVersion + 1;
-  const merged: CmsPageDoc = { ...doc, slug: page.slug }; // slug estable
-  const update: Record<string, unknown> = { title: merged.title, draft_doc: merged, current_version: nextVersion };
-  if (page.bindingKind === 'standalone' && urlPath && urlPath !== page.urlPath) {
+  // El slug antes era siempre "estable" (nunca cambiaba tras crear la
+  // página) — pero eso también significaba que marketing no podía nunca
+  // limpiar un slug feo (ej. el sufijo aleatorio de un artículo nuevo).
+  // Ahora se respeta el slug que venga en el doc para páginas standalone y
+  // de blog (donde tiene sentido editarlo); moto/estática lo ignoran porque
+  // ahí el slug del doc no controla ninguna URL real.
+  const slugEditable = page.bindingKind === 'standalone' || page.bindingKind === 'blog';
+  const nextSlug = slugEditable && doc.slug ? doc.slug : page.slug;
+  const merged: CmsPageDoc = { ...doc, slug: nextSlug };
+  const update: Record<string, unknown> = { title: merged.title, slug: nextSlug, draft_doc: merged, current_version: nextVersion };
+  if ((page.bindingKind === 'standalone' || page.bindingKind === 'blog') && urlPath && urlPath !== page.urlPath) {
     update.url_path = normalizeUrlPath(urlPath);
   }
   const { data, error } = await sb.from('cms_pages').update(update).eq('id', pageId).select('*').single();
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') throw new Error(`Ese slug ya lo usa otra página: "${nextSlug}".`);
+    throw error;
+  }
   await insertVersion(pageId, nextVersion, merged, source, note);
   return mapPage(data);
 }

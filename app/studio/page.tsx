@@ -137,6 +137,7 @@ export default function StudioPage() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [viewingVersion, setViewingVersion] = useState<CmsPageVersion | null>(null);
   const [sessionUser, setSessionUser] = useState<{ email: string; role: string } | null>(null);
   const livePreviewRef = useRef<HTMLIFrameElement>(null);
   const [componentDefaults, setComponentDefaults] = useState<Record<string, Record<string, string | number>>>({});
@@ -174,7 +175,7 @@ export default function StudioPage() {
   }, []);
 
   const loadPage = useCallback(async (id: string) => {
-    setBusy('Cargando página…');
+    setBusy('Cargando página…'); setViewingVersion(null);
     try {
       const d = (await fetch(`/api/cms/pages/${id}`).then((x) => x.json())) as Detail;
       setPageId(d.page.id); setDoc(d.page.draftDoc); setVersions(d.versions);
@@ -191,6 +192,7 @@ export default function StudioPage() {
   }, []);
 
   function newPage() {
+    setViewingVersion(null);
     setPageId(null); setDoc({ ...EMPTY_DOC, blocks: [newBlock('heading')] }); setVersions([]);
     setStatus('draft'); setTab('build'); setHtmlBuf(''); setNote('Página nueva — agrega bloques y guarda.');
     setBinding({ kind: 'standalone', key: null, urlPath: '' });
@@ -199,6 +201,7 @@ export default function StudioPage() {
   }
 
   async function importExisting(key: string) {
+    setViewingVersion(null);
     const pg = existing.find((e) => e.key === key); if (!pg) return;
     // Si esta página real ya tiene una página CMS asociada (bindingKey), ábrela — no dupliques.
     const already = pages.find((p) => p.bindingKey === pg.bindingKey);
@@ -228,7 +231,17 @@ export default function StudioPage() {
   async function applyHtml() {
     setBusy('Adaptando HTML a bloques…');
     const r = (await jpost('/api/cms/parse-html', { html: htmlBuf, title: doc.title, slug: doc.slug, schemaType: doc.schema.type })) as { doc: CmsPageDoc };
-    setBusy(''); setDoc({ ...r.doc, title: doc.title || r.doc.title, schema: doc.schema }); setTab('build');
+    setBusy('');
+    // Si lo pegado empieza con un <h1>, ESE es el título real de la página
+    // — lo usamos como Título y lo quitamos de los bloques para no repetirlo
+    // dos veces (uno como encabezado real de la página, otro como bloque de
+    // contenido). Si no, se conserva el título que ya tenía la página.
+    const first = r.doc.blocks[0];
+    const nextDoc =
+      first && first.type === 'heading' && first.level === 1
+        ? { ...r.doc, title: first.text, blocks: r.doc.blocks.slice(1) }
+        : { ...r.doc, title: doc.title || r.doc.title };
+    setDoc({ ...nextDoc, schema: doc.schema }); setTab('build');
     setNote('HTML adaptado a bloques. Revisa y guarda.');
   }
 
@@ -264,12 +277,27 @@ export default function StudioPage() {
 
   async function save() {
     setBusy('Guardando…');
+    let currentBinding = binding;
+    // Para un artículo de blog el slug del doc NO es solo un dato interno —
+    // es (una vez limpio) el mismo que usa la URL real /blog/<slug>. Si lo
+    // cambiaron, hay que renombrar el post real ANTES de guardar el doc.
+    if (pageId && binding.kind === 'blog' && binding.key) {
+      const currentRealSlug = binding.urlPath.replace(/^\/blog\//, '');
+      const desiredSlug = doc.slug || slugify(doc.title);
+      if (desiredSlug && desiredSlug !== currentRealSlug) {
+        const postId = binding.key.slice('blog:'.length);
+        const rs = (await jpost(`/api/cms/blog-posts/${postId}/slug`, { slug: desiredSlug })) as { slug?: string; urlPath?: string; error?: string };
+        if (rs.error || !rs.urlPath) { setBusy(''); setNote('No se pudo cambiar el slug: ' + (rs.error || 'desconocido')); return; }
+        currentBinding = { ...binding, urlPath: rs.urlPath };
+        setBinding(currentBinding);
+      }
+    }
     const finalSlug = doc.slug || slugify(doc.title);
     const payload: Record<string, unknown> = { doc: { ...doc, slug: finalSlug }, pageId: pageId ?? undefined, source: 'manual', note: 'Edición visual' };
     if (!pageId) {
-      payload.binding = { kind: binding.kind, key: binding.key, urlPath: binding.kind === 'standalone' ? (binding.urlPath || `/p/${finalSlug}`) : binding.urlPath };
-    } else if (binding.kind === 'standalone') {
-      payload.urlPath = binding.urlPath || `/p/${finalSlug}`;
+      payload.binding = { kind: currentBinding.kind, key: currentBinding.key, urlPath: currentBinding.kind === 'standalone' ? (currentBinding.urlPath || `/p/${finalSlug}`) : currentBinding.urlPath };
+    } else if (currentBinding.kind === 'standalone' || currentBinding.kind === 'blog') {
+      payload.urlPath = currentBinding.urlPath || `/p/${finalSlug}`;
     }
     const r = (await jpost('/api/cms/pages', payload)) as { page?: CmsPage; error?: string };
     setBusy('');
@@ -301,6 +329,7 @@ export default function StudioPage() {
     if (node.kind === 'bindable' && node.bindingKey) { await importExisting(node.bindingKey); return; }
   }
   function createUnder(node: SiteNode) {
+    setViewingVersion(null);
     const prefix = node.childSlugPrefix || '';
     setPageId(null);
     setDoc({ slug: prefix, title: 'Nueva subpágina', description: '', blocks: [newBlock('heading')], schema: { type: 'WebPage', breadcrumb: [{ name: node.label, url: node.href || '/' }] } });
@@ -315,6 +344,7 @@ export default function StudioPage() {
    * real (blog_posts, en borrador) y abre de inmediato su página CMS bound
    * para escribir el contenido — ver /api/cms/blog-posts. */
   async function createBlogPost() {
+    setViewingVersion(null);
     setBusy('Creando artículo…');
     const r = (await jpost('/api/cms/blog-posts', { title: 'Nuevo artículo' })) as {
       post?: { id: string; slug: string; title: string; urlPath: string };
@@ -452,7 +482,7 @@ export default function StudioPage() {
     );
   }
 
-  const previewDoc = `<style>body{font-family:system-ui;max-width:720px;margin:auto;padding:26px;color:#1a1c21}h1{font-size:30px}.btn{display:inline-block;padding:10px 16px;border-radius:9px;text-decoration:none;margin:6px 8px 6px 0}.btn--primary{background:#dd5a10;color:#fff}.btn--secondary{border:1px solid #dd5a10;color:#dd5a10}figure{margin:1em 0}figure img{max-width:100%;border-radius:12px;background:#eee;min-height:120px}.cms-faq details{border:1px solid #e6e4de;border-radius:10px;padding:8px 12px;margin:6px 0}.cms-field{margin:10px 0;display:flex;flex-direction:column;gap:4px}.cms-field input,.cms-field select,.cms-field textarea{padding:8px;border:1px solid #ccc;border-radius:8px}label{font-weight:600;font-size:14px}</style>${renderDoc(doc)}`;
+  const previewDoc = `<style>body{font-family:system-ui;max-width:720px;margin:auto;padding:26px;color:#1a1c21}h1{font-size:30px}.btn{display:inline-block;padding:10px 16px;border-radius:9px;text-decoration:none;margin:6px 8px 6px 0}.btn--primary{background:#dd5a10;color:#fff}.btn--secondary{border:1px solid #dd5a10;color:#dd5a10}figure{margin:1em 0}figure img{max-width:100%;border-radius:12px;background:#eee;min-height:120px}.cms-faq details{border:1px solid #e6e4de;border-radius:10px;padding:8px 12px;margin:6px 0}.cms-field{margin:10px 0;display:flex;flex-direction:column;gap:4px}.cms-field input,.cms-field select,.cms-field textarea{padding:8px;border:1px solid #ccc;border-radius:8px}label{font-weight:600;font-size:14px}</style>${renderDoc(viewingVersion ? viewingVersion.doc : doc)}`;
 
   return (
     <main style={{ display: 'grid', gridTemplateColumns: '230px 1fr 300px', gap: 14, padding: 16, minHeight: '100vh', fontSize: 14, background: '#f5f4f1' }}>
@@ -620,6 +650,12 @@ export default function StudioPage() {
 
         {tab === 'preview' && (
           <div style={{ ...box, padding: 0, overflow: 'hidden' }}>
+            {viewingVersion && (
+              <div style={{ background: '#fdecd9', color: '#7a3b00', padding: '8px 14px', fontSize: 12.5, display: 'flex', gap: 10, alignItems: 'center', borderBottom: '1px solid #f3d3ac' }}>
+                <span>Viendo la versión v{viewingVersion.version} ({viewingVersion.source}) — no es tu borrador actual, esto no se guardó ni se publicó.</span>
+                <button style={{ ...btn, marginLeft: 'auto', padding: '3px 9px' }} onClick={() => setViewingVersion(null)}>Volver a mi borrador</button>
+              </div>
+            )}
             <iframe title="preview" style={{ width: '100%', height: '70vh', border: 0, background: '#fff' }} srcDoc={previewDoc} />
           </div>
         )}
@@ -678,8 +714,17 @@ export default function StudioPage() {
               )}
             </>
           )}
-          <div style={lbl}>Slug {binding.kind === 'standalone' && '(el último tramo de la URL)'}</div>
-          <input style={inp} value={doc.slug} placeholder={slugify(doc.title)} onChange={(e) => setDoc({ ...doc, slug: e.target.value })} disabled={!!pageId} />
+          <div style={lbl}>
+            Slug {binding.kind === 'standalone' && '(el último tramo de la URL)'}
+            {binding.kind === 'blog' && '(cambia la URL real del artículo al guardar)'}
+          </div>
+          <input
+            style={inp}
+            value={doc.slug}
+            placeholder={slugify(doc.title)}
+            onChange={(e) => setDoc({ ...doc, slug: e.target.value })}
+            disabled={!!pageId && binding.kind !== 'standalone' && binding.kind !== 'blog'}
+          />
           <div style={lbl}>URL {binding.kind !== 'standalone' && '(real — la controla la página de origen)'}</div>
           <input style={{ ...inp, background: '#f3f2ee', color: '#888' }} value={binding.urlPath} disabled />
           {binding.kind === 'standalone' && !pageId && (
@@ -702,7 +747,10 @@ export default function StudioPage() {
             {versions.map((v) => (
               <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', fontSize: 12, borderBottom: '1px dashed #eee' }}>
                 <span>v{v.version} · <span style={{ color: '#888' }}>{v.source}</span></span>
-                <button style={{ ...btn, padding: '2px 8px' }} onClick={() => rollback(v.version)}>restaurar</button>
+                <span style={{ display: 'flex', gap: 6 }}>
+                  <button style={{ ...btn, padding: '2px 8px' }} onClick={() => { setViewingVersion(v); setTab('preview'); }}>ver</button>
+                  <button style={{ ...btn, padding: '2px 8px' }} onClick={() => rollback(v.version)}>restaurar</button>
+                </span>
               </div>
             ))}
           </div>

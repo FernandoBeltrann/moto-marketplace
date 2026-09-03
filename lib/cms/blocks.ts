@@ -122,7 +122,33 @@ export function normalizeDoc(raw: unknown, fallbackSlug = 'nueva-pagina'): CmsPa
             .filter((c) => c.name && c.url)
         : undefined,
     },
+    componentConfig: normalizeComponentConfig(d.componentConfig),
   };
+}
+
+/**
+ * `componentConfig` (props editables de componentes reales — ver
+ * lib/cms/component-registry.ts) se perdía en cada guardado porque
+ * normalizeDoc no lo copiaba: el Studio lo mandaba bien, pero al releer la
+ * página de la base de datos ya no estaba. Se valida de forma laxa (objeto
+ * de objetos con texto/número/booleano) en vez de listarlo campo por campo,
+ * para no tener que tocar este archivo cada vez que se agrega un componente
+ * nuevo al registry.
+ */
+function normalizeComponentConfig(raw: unknown): CmsPageDoc['componentConfig'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const out: Record<string, Record<string, string | number | boolean>> = {};
+  for (const [componentId, fields] of Object.entries(raw as Record<string, unknown>)) {
+    if (!fields || typeof fields !== 'object') continue;
+    const cleanFields: Record<string, string | number | boolean> = {};
+    for (const [key, value] of Object.entries(fields as Record<string, unknown>)) {
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        cleanFields[key] = value;
+      }
+    }
+    if (Object.keys(cleanFields).length) out[componentId] = cleanFields;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 export function slugify(input: string): string {

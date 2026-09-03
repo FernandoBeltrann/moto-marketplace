@@ -72,6 +72,24 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
   return (data ?? []).map((row) => mapBlogPostRow(row as Record<string, unknown>));
 }
 
+/**
+ * Todos los posts (publicados o no), para uso INTERNO del Studio (Mapa del
+ * sitio / "Importar existente" — ver lib/cms/bindings.ts): un artículo
+ * recién creado con "+ nuevo artículo" nace sin publicar, y necesita
+ * aparecer ahí con su punto de estado en borrador aunque getBlogPosts()
+ * (la lista PÚBLICA de /blog) todavía no lo incluya.
+ */
+export async function getBlogPostsAny(): Promise<BlogPost[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = createServiceSupabase();
+  const { data, error } = await supabase
+    .from(blogPostsTable())
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((row) => mapBlogPostRow(row as Record<string, unknown>));
+}
+
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
   const list = await getBlogPosts();
   return list.find((p) => p.slug === slug);
@@ -123,6 +141,24 @@ export async function publishBlogPostIfDraft(id: string): Promise<void> {
     .from(blogPostsTable())
     .update({ published: true, published_at: data.published_at || new Date().toISOString() })
     .eq('id', id);
+}
+
+export type RenameBlogSlugResult = { slug: string } | { error: string };
+
+/**
+ * Cambia el slug REAL de un post (y por lo tanto su URL pública,
+ * /blog/<slug>) — para que marketing pueda limpiar el sufijo aleatorio con
+ * el que nace un artículo creado desde "+ nuevo artículo". Normaliza el
+ * slug propuesto y rechaza si ya lo usa otro post.
+ */
+export async function renameBlogPostSlug(id: string, desiredSlug: string): Promise<RenameBlogSlugResult> {
+  const supabase = createServiceSupabase();
+  const slug = slugifyForBlog(desiredSlug);
+  const { data: clash } = await supabase.from(blogPostsTable()).select('id').eq('slug', slug).neq('id', id).maybeSingle();
+  if (clash) return { error: `Ese slug ya lo usa otro artículo: "${slug}".` };
+  const { error } = await supabase.from(blogPostsTable()).update({ slug }).eq('id', id);
+  if (error) return { error: error.message };
+  return { slug };
 }
 
 function slugifyForBlog(s: string): string {
