@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getBlogPostBySlug, getBlogPosts, blogPostPath, blogPostDate } from '@/lib/blog';
+import { getBlogPostBySlug, getBlogPostBySlugAny, getBlogPosts, blogPostPath, blogPostDate } from '@/lib/blog';
 import { buildBlogPostingJsonLd } from '@/lib/blog-jsonld';
 import { absoluteAssetUrl } from '@/lib/product-jsonld';
 import { site } from '@/lib/site';
-import { getCmsOverrideForRequest } from '@/lib/cms/overrides';
+import { getCmsOverrideForRequest, hasCmsSession } from '@/lib/cms/overrides';
 import { renderDocHtml } from '@/lib/cms/render';
 
 export const revalidate = 120;
@@ -57,12 +57,21 @@ type PageProps = Props & { searchParams: Promise<{ cmsPreview?: string }> };
 export default async function BlogPostPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const sp = searchParams ? await searchParams : {};
-  const post = await getBlogPostBySlug(slug);
+  const wantsPreview = sp.cmsPreview === '1';
+  let post = await getBlogPostBySlug(slug);
+  // Un artículo recién creado desde "+ nuevo artículo" nace sin publicar
+  // (ver lib/blog.ts::createBlogPostDraft) — sin este fallback, su vista
+  // previa del borrador daba 404 porque el post real todavía no existía
+  // para efectos públicos. Solo se busca sin filtro de publicado si hay
+  // sesión válida del Studio, para no exponer borradores adivinando el slug.
+  if (!post && wantsPreview && (await hasCmsSession())) {
+    post = await getBlogPostBySlugAny(slug);
+  }
   if (!post) notFound();
 
   const jsonLd = buildBlogPostingJsonLd(post);
   const dateLabel = formatPostDate(blogPostDate(post));
-  const { doc: override, isPreview } = await getCmsOverrideForRequest(`blog:${post.id}`, sp.cmsPreview === '1');
+  const { doc: override, isPreview } = await getCmsOverrideForRequest(`blog:${post.id}`, wantsPreview);
   // El body del post ya es HTML (Directus). Un override del CMS lo reemplaza
   // por completo — es el mismo tipo de contenido, solo con otro editor.
   const title = override?.title || post.title;

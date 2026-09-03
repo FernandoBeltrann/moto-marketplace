@@ -14,6 +14,13 @@ import { getPageByBindingKey, getPageById } from '@/lib/cms/pages';
 import { verifyCmsAccessToken, CMS_ACCESS_COOKIE } from '@/lib/cms/auth';
 import type { CmsPageDoc } from '@/types/cms';
 
+/** true si quien hace la request tiene una sesión válida del Studio (cookie de acceso vigente). */
+export async function hasCmsSession(): Promise<boolean> {
+  const token = (await cookies()).get(CMS_ACCESS_COOKIE)?.value;
+  const user = token ? await verifyCmsAccessToken(token) : null;
+  return Boolean(user);
+}
+
 /** Override PUBLICADO para una página real, o null si marketing no la ha tocado. */
 export async function getCmsOverride(bindingKey: string): Promise<CmsPageDoc | null> {
   const page = await getPageByBindingKey(bindingKey);

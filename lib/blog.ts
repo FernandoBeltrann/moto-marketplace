@@ -78,6 +78,22 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefi
 }
 
 /**
+ * Como getBlogPostBySlug, pero sin filtrar por `published` — para la vista
+ * previa del borrador (?cmsPreview=1) de un artículo recién creado desde
+ * "+ nuevo artículo" (nace sin publicar). SOLO se debe llamar después de
+ * confirmar sesión válida del Studio (ver lib/cms/overrides.ts) — nunca
+ * expuesto a un visitante normal, o cualquiera podría ver un artículo sin
+ * publicar adivinando su slug.
+ */
+export async function getBlogPostBySlugAny(slug: string): Promise<BlogPost | undefined> {
+  if (!supabaseConfigured()) return undefined;
+  const supabase = createServiceSupabase();
+  const { data, error } = await supabase.from(blogPostsTable()).select('*').eq('slug', slug).maybeSingle();
+  if (error || !data) return undefined;
+  return mapBlogPostRow(data as Record<string, unknown>);
+}
+
+/**
  * Crea un post en borrador (`published: false`) para que el Studio pueda
  * abrirlo de inmediato como página CMS bound (`blog:<id>`) — ver
  * `app/api/cms/blog-posts/route.ts` y el botón "+ Nuevo artículo" del Mapa
