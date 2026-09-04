@@ -315,8 +315,13 @@ export default function StudioPage() {
 
   async function publish() {
     if (!pageId) { setNote('Guarda primero la página.'); return; }
-    setBusy('Publicando…'); await jpost(`/api/cms/pages/${pageId}/publish`, {}); setBusy('');
+    if (sessionUser && sessionUser.role !== 'admin') { setNote('Solo un admin puede publicar. Tu borrador ya está guardado — avísale a un admin para que lo revise y publique.'); return; }
+    setBusy('Publicando…');
+    const r = (await jpost(`/api/cms/pages/${pageId}/publish`, {})) as { page?: CmsPage; error?: string };
+    setBusy('');
+    if (!r.page) { setNote('No se pudo publicar: ' + (r.error || 'desconocido')); return; }
     await loadPage(pageId); await refreshList();
+    setNote('Publicado.');
   }
   async function rollback(v: number) {
     if (!pageId) return; setBusy('Restaurando…'); await jpost(`/api/cms/pages/${pageId}/rollback`, { version: v }); setBusy('');
@@ -741,7 +746,13 @@ export default function StudioPage() {
             {SCHEMA_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <button style={{ ...btnPri, width: '100%', marginTop: 10 }} onClick={save}>Guardar cambios</button>
-          <button style={{ ...btn, width: '100%', marginTop: 6 }} onClick={publish} disabled={!pageId}>Revisar y publicar →</button>
+          {(!sessionUser || sessionUser.role === 'admin') ? (
+            <button style={{ ...btn, width: '100%', marginTop: 6 }} onClick={publish} disabled={!pageId}>Revisar y publicar →</button>
+          ) : (
+            <div style={{ fontSize: 11, color: '#999', marginTop: 6, textAlign: 'center' }}>
+              Publicar está reservado a un admin mientras se prueba el Studio — tu borrador se guarda igual, avísale a un admin para publicarlo.
+            </div>
+          )}
           {pageId && <a href={`${binding.urlPath || `/p/${doc.slug}`}?cmsPreview=1`} target="_blank" rel="noreferrer" style={{ ...btn, display: 'block', textAlign: 'center', marginTop: 6, textDecoration: 'none', borderColor: '#dd5a10', color: '#97400c' }}>Vista previa del borrador</a>}
         </div>
 
