@@ -18,7 +18,7 @@ import { getMotorcycleReviews } from "@/lib/motorcycle-reviews";
 import { buildProductJsonLd, absoluteAssetUrl } from "@/lib/product-jsonld";
 import { site } from "@/lib/site";
 import { getCmsOverrideForRequest } from "@/lib/cms/overrides";
-import { renderDocHtml } from "@/lib/cms/render";
+import { renderDocHtml, withoutLeadingTitleHeading } from "@/lib/cms/render";
 import { buildPageJsonLd } from "@/lib/cms/schema-jsonld";
 import { productPath as motoProductPath } from "@/lib/catalog";
 import { parseTags, parseKeyValue, headingTag } from "@/lib/cms/component-values";
@@ -73,7 +73,9 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   const reviews = await getMotorcycleReviews(moto.id);
   const jsonLd = buildProductJsonLd(moto, { reviews });
   const { doc: override, isPreview } = await getCmsOverrideForRequest(`moto:${moto.id}`, sp.cmsPreview === '1');
-  const overrideHtml = override ? renderDocHtml(override) : null;
+  // La ficha ya pinta su propio <h1> con marca/modelo/año; el primer bloque h1
+  // del CMS (que solo carga el título SEO) se omite para no duplicarlo.
+  const overrideHtml = override ? renderDocHtml(withoutLeadingTitleHeading(override)) : null;
   const overrideJsonLd = override ? buildPageJsonLd(override, motoProductPath(moto)) : [];
 
   // Config de componentes (lib/cms/component-registry.ts): vacío = se queda el
@@ -162,7 +164,9 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
             <h1>
               {moto.brand} {moto.model} {moto.year}
             </h1>
-            <p>{shortDescription}</p>
+            {/* La descripción corta se pinta UNA sola vez, en "productHighlights"
+                (columna izquierda) — que es donde el registry del CMS la ubica.
+                Antes también se repetía aquí y cada edición se veía duplicada. */}
             {firstAnswer ? (
               <p className="first-answer" style={{ fontWeight: 600 }}>
                 {firstAnswer}

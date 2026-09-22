@@ -10,10 +10,30 @@
  * no cambia esa regla, solo la hace visible antes de tocar nada.
  */
 import { getMotorcycles } from '@/lib/catalog';
-import { serializeTags, serializeKeyValue } from '@/lib/cms/component-values';
+import { serializeTags, serializeKeyValue, serializeLines } from '@/lib/cms/component-values';
 import type { CmsBindingKind } from '@/types/cms';
 
 const CATALOG_EMPTY_STATE_DEFAULT = 'No encontramos motos con esos filtros. Prueba ajustando tu búsqueda.';
+
+/**
+ * Copy fijo actual del home (app/page.tsx) — única fuente para pre-llenar el
+ * Studio Y para el fallback real en la página cuando marketing no ha editado
+ * nada, así nunca quedan desincronizados.
+ */
+export const HOME_DEFAULTS = {
+  eyebrow: 'Motos nuevas + financiamiento powered by Finva',
+  featuredHeading: 'Motos destacadas',
+  featuredSubtitle: 'Ordenadas por intención comercial: disponibilidad, precio, financiamiento y conversión esperada.',
+  featuredCta: 'Ver catálogo',
+  comoHeading: 'Cómo funciona',
+  comoSteps: [
+    'Encuentra tu moto.',
+    'Calcula enganche y mensualidad estimada.',
+    'WhatsApp e intención de compra.',
+    'Finva continúa evaluación, documentos, aprobación y cierre.',
+  ],
+  comoCta: 'Ver motos a crédito',
+} as const;
 
 export async function getComponentDefaults(
   bindingKind: CmsBindingKind,
@@ -47,6 +67,21 @@ export async function getComponentDefaults(
   if (bindingKey === 'static:motos') {
     return {
       catalogEmptyState: { message: CATALOG_EMPTY_STATE_DEFAULT },
+    };
+  }
+  if (bindingKey === 'static:home') {
+    return {
+      homeHero: { eyebrow: HOME_DEFAULTS.eyebrow },
+      homeFeatured: {
+        heading: HOME_DEFAULTS.featuredHeading,
+        subtitle: HOME_DEFAULTS.featuredSubtitle,
+        ctaLabel: HOME_DEFAULTS.featuredCta,
+      },
+      homeComoFunciona: {
+        heading: HOME_DEFAULTS.comoHeading,
+        steps: serializeLines([...HOME_DEFAULTS.comoSteps]),
+        ctaLabel: HOME_DEFAULTS.comoCta,
+      },
     };
   }
   return {};

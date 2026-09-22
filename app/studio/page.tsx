@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CmsBindingKind, CmsBlock, CmsBlockType, CmsPage, CmsPageDoc, CmsPageVersion } from '@/types/cms';
 import { getComponentDefsFor } from '@/lib/cms/component-registry';
+import { getLayoutSectionsFor, resolveSectionOrder } from '@/lib/cms/layout-sections';
 
 type Detail = { page: CmsPage; versions: CmsPageVersion[] };
 type SiteNode = {
@@ -126,7 +127,8 @@ export default function StudioPage() {
   const [doc, setDoc] = useState<CmsPageDoc>(EMPTY_DOC);
   const [versions, setVersions] = useState<CmsPageVersion[]>([]);
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
-  const [tab, setTab] = useState<'build' | 'html' | 'preview' | 'json' | 'seo' | 'map' | 'components'>('map');
+  const [tab, setTab] = useState<'build' | 'html' | 'preview' | 'json' | 'seo' | 'map' | 'components' | 'layout'>('map');
+  const [dragSectionIdx, setDragSectionIdx] = useState<number | null>(null);
   const [seo, setSeo] = useState<{ metaTags?: string; headTags?: string; sitemapXml?: string; nodes?: string[]; schemaType?: string; sitemap?: { loc: string; lastmod: string } } | null>(null);
   const [media, setMedia] = useState<{ name: string; url: string; source: string }[]>([]);
   const [links, setLinks] = useState<{ label: string; href: string; group: string }[]>([]);
@@ -140,6 +142,8 @@ export default function StudioPage() {
   const [viewingVersion, setViewingVersion] = useState<CmsPageVersion | null>(null);
   const [sessionUser, setSessionUser] = useState<{ email: string; role: string } | null>(null);
   const livePreviewRef = useRef<HTMLIFrameElement>(null);
+  const layoutPreviewRef = useRef<HTMLIFrameElement>(null);
+  const [layoutPreviewNonce, setLayoutPreviewNonce] = useState(0);
   const [componentDefaults, setComponentDefaults] = useState<Record<string, Record<string, string | number>>>({});
 
   const refreshList = useCallback(async () => {
@@ -174,12 +178,20 @@ export default function StudioPage() {
     }
   }, []);
 
-  const loadPage = useCallback(async (id: string) => {
+  // `keepTab`: al ABRIR una página (desde la lista, el mapa del sitio o
+  // "importar existente") sí queremos aterrizar en "Constructor" — es el
+  // punto de partida de siempre. Pero al RELEER la misma página que ya
+  // estabas editando (justo después de guardar) no: si estabas en "Diseño"
+  // (o cualquier otra pestaña), guardar te mandaba de vuelta a Constructor
+  // sin que lo pidieras — molesto sobre todo en Diseño, donde guardar es
+  // parte del flujo normal de reordenar y revisar. Ver save().
+  const loadPage = useCallback(async (id: string, keepTab = false) => {
     setBusy('Cargando página…'); setViewingVersion(null);
     try {
       const d = (await fetch(`/api/cms/pages/${id}`).then((x) => x.json())) as Detail;
       setPageId(d.page.id); setDoc(d.page.draftDoc); setVersions(d.versions);
-      setStatus(d.page.status); setHtmlBuf(renderDoc(d.page.draftDoc)); setTab('build'); setNote(null);
+      setStatus(d.page.status); setHtmlBuf(renderDoc(d.page.draftDoc)); setNote(null);
+      if (!keepTab) setTab('build');
       setBinding({ kind: d.page.bindingKind, key: d.page.bindingKey, urlPath: d.page.urlPath });
       if (d.page.bindingKind === 'standalone') {
         const { prefix, custom } = deriveUrlPrefix(d.page.urlPath, d.page.draftDoc.slug);
@@ -278,6 +290,26 @@ export default function StudioPage() {
     livePreviewRef.current?.contentWindow?.postMessage({ type: 'cms-highlight', regionId }, '*');
   }
 
+  // --- orden de secciones (lib/cms/layout-sections.ts) ---
+  const layoutSections = getLayoutSectionsFor(binding.key);
+  const sectionOrder = resolveSectionOrder(binding.key, doc.sectionOrder);
+  function setSectionOrder(next: string[]) { setDoc((d) => ({ ...d, sectionOrder: next })); }
+  function moveSection(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= sectionOrder.length) return;
+    const arr = [...sectionOrder];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    setSectionOrder(arr);
+  }
+  function dropSection(i: number) {
+    if (dragSectionIdx === null || dragSectionIdx === i) { setDragSectionIdx(null); return; }
+    const arr = [...sectionOrder];
+    const [moved] = arr.splice(dragSectionIdx, 1);
+    arr.splice(i, 0, moved);
+    setSectionOrder(arr);
+    setDragSectionIdx(null);
+  }
+
   async function save() {
     setBusy('Guardando…');
     let currentBinding = binding;
@@ -309,7 +341,7 @@ export default function StudioPage() {
     }
     const r = (await jpost('/api/cms/pages', payload)) as { page?: CmsPage; error?: string };
     setBusy('');
-    if (r.page) { await refreshList(); await loadPage(r.page.id); setNote(`Guardado v${r.page.currentVersion}.`); }
+    if (r.page) { await refreshList(); await loadPage(r.page.id, true); setNote(`Guardado v${r.page.currentVersion}.`); }
     else setNote('Error al guardar: ' + (r.error || 'desconocido'));
   }
 
@@ -536,9 +568,11 @@ export default function StudioPage() {
       {/* CENTRO: constructor / html / preview / json */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ ...box, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {(['build', 'components', 'html', 'preview', 'json', 'seo', 'map'] as const).map((t) => (
+          {(['build', 'components', 'layout', 'html', 'preview', 'json', 'seo', 'map'] as const)
+            .filter((t) => t !== 'layout' || layoutSections.length > 0)
+            .map((t) => (
             <button key={t} style={t === tab ? btnPri : btn} onClick={() => { if (t === 'html') setHtmlBuf(renderDoc(doc)); if (t === 'seo') loadSeo(); setTab(t); }}>
-              {t === 'build' ? 'Constructor' : t === 'components' ? 'Componentes' : t === 'html' ? 'HTML' : t === 'preview' ? 'Vista previa' : t === 'json' ? 'JSON' : t === 'seo' ? 'Schema / SEO' : 'Mapa del sitio'}
+              {t === 'build' ? 'Constructor' : t === 'components' ? 'Componentes' : t === 'layout' ? 'Diseño' : t === 'html' ? 'HTML' : t === 'preview' ? 'Vista previa' : t === 'json' ? 'JSON' : t === 'seo' ? 'Schema / SEO' : 'Mapa del sitio'}
             </button>
           ))}
           {busy && <span style={{ color: '#dd5a10', marginLeft: 8 }}>{busy}</span>}
@@ -653,6 +687,81 @@ export default function StudioPage() {
           </div>
         )}
 
+        {tab === 'layout' && (
+          <div style={{ ...box, display: 'grid', gridTemplateColumns: 'minmax(260px, 340px) 1fr', gap: 16 }}>
+            <div>
+              <strong>Orden de las secciones</strong>
+              <p style={{ fontSize: 12.5, color: '#888', margin: '6px 0 14px' }}>
+                Esta página está armada con {layoutSections.length} bloques fijos. Arrastra una tarjeta para
+                moverla (o usa las flechas) y cambia el orden en que aparecen en la página — el contenido de cada
+                una no cambia, solo su lugar. Guarda y dale a «↻ Actualizar» en la vista previa de la derecha para
+                verlo reflejado ahí.
+              </p>
+              {sectionOrder.map((id, i) => {
+                const def = layoutSections.find((s) => s.id === id);
+                return (
+                  <div
+                    key={id}
+                    draggable
+                    onDragStart={() => setDragSectionIdx(i)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => dropSection(i)}
+                    onDragEnd={() => setDragSectionIdx(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      border: '1px solid #e6e4de',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      marginBottom: 8,
+                      background: dragSectionIdx === i ? '#fdece0' : '#fbfbfa',
+                      cursor: 'grab',
+                    }}
+                  >
+                    <span style={{ color: '#bbb', fontSize: 18, lineHeight: 1, cursor: 'grab' }} title="Arrastra para mover">⠿⠿</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{i + 1}. {def?.label || id}</div>
+                      {def?.where && <div style={{ fontSize: 11.5, color: '#999' }}>{def.where}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flex: 'none' }}>
+                      <button style={btn} disabled={i === 0} onClick={() => moveSection(i, -1)} title="Subir">↑</button>
+                      <button style={btn} disabled={i === sectionOrder.length - 1} onClick={() => moveSection(i, 1)} title="Bajar">↓</button>
+                    </div>
+                  </div>
+                );
+              })}
+              <button style={{ ...btnPri, width: '100%', marginTop: 10 }} onClick={save}>Guardar cambios</button>
+            </div>
+            {/* Playground: el sitio real (MotoClick), en vivo — mismo patrón que la pestaña Componentes. */}
+            <div style={{ border: '1px solid #e6e4de', borderRadius: 10, overflow: 'hidden', minHeight: 420, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderBottom: '1px solid #eee', background: '#fbfbfa' }}>
+                <span style={{ fontSize: 12, color: '#888', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Vista previa en vivo — motoclick.mx{binding.urlPath}
+                </span>
+                {binding.urlPath && (
+                  <a href={`${binding.urlPath}?cmsPreview=1`} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#97400c' }}>
+                    abrir en pestaña ↗
+                  </a>
+                )}
+                <button style={{ ...btn, padding: '3px 9px', fontSize: 12 }} onClick={() => setLayoutPreviewNonce((n) => n + 1)}>
+                  ↻ Actualizar
+                </button>
+              </div>
+              {binding.urlPath ? (
+                <iframe
+                  ref={layoutPreviewRef}
+                  title="vista previa en vivo del orden de secciones"
+                  src={`${binding.urlPath}?cmsPreview=1&_r=${layoutPreviewNonce}`}
+                  style={{ width: '100%', flex: 1, minHeight: 420, border: 0, background: '#fff' }}
+                />
+              ) : (
+                <div style={{ padding: 16, color: '#999' }}>Guarda la página para ver la vista previa en vivo.</div>
+              )}
+            </div>
+          </div>
+        )}
+
         {tab === 'html' && (
           <div style={box}>
             <div style={lbl}>HTML de la página (edítalo y adáptalo a bloques)</div>
@@ -741,6 +850,16 @@ export default function StudioPage() {
           {binding.kind === 'standalone' && !pageId && (
             <div style={{ fontSize: 11, color: '#999', marginTop: -4, marginBottom: 4 }}>El slug siempre define este último tramo — cambia de destino o de slug arriba, no aquí.</div>
           )}
+          <div style={lbl}>
+            Descripción
+            {binding.key === 'static:home' && ' (también el texto bajo el título en el hero de Inicio)'}
+          </div>
+          <textarea
+            style={{ ...inp, minHeight: 56 }}
+            value={doc.description ?? ''}
+            placeholder="Descripción para buscadores y redes sociales."
+            onChange={(e) => setDoc({ ...doc, description: e.target.value })}
+          />
           <div style={lbl}>Schema.org</div>
           <select style={inp} value={doc.schema.type} onChange={(e) => setDoc({ ...doc, schema: { ...doc.schema, type: e.target.value as CmsPageDoc['schema']['type'] } })}>
             {SCHEMA_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}

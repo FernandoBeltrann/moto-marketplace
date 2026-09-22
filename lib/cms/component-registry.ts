@@ -156,6 +156,58 @@ const BY_KEY: Record<string, CmsComponentDef[]> = {
       ],
     },
   ],
+  // Antes NINGUNA de las 3 secciones fijas del home (hero, destacadas, cómo
+  // funciona) tenía forma de editarse desde el Studio — todo su copy estaba
+  // escrito directo en app/page.tsx. El título principal (h1) y la
+  // descripción del hero se editan aparte (primer bloque en "Constructor" y
+  // el campo "Descripción" del panel derecho, respectivamente); estos 3
+  // componentes cubren el resto del copy fijo.
+  'static:home': [
+    {
+      id: 'homeHero',
+      label: 'Hero — etiqueta sobre el título',
+      where: 'Arriba del todo, sobre el título principal. El título (h1) se edita como primer bloque en "Constructor"; la descripción, en el campo "Descripción" del panel derecho.',
+      fields: [
+        {
+          key: 'eyebrow',
+          label: 'Etiqueta sobre el título',
+          type: 'text',
+          placeholder: 'Motos nuevas + financiamiento powered by Finva',
+        },
+      ],
+    },
+    {
+      id: 'homeFeatured',
+      label: '"Motos destacadas"',
+      where: 'Debajo del hero — el grid de motos abajo sigue siendo el catálogo en vivo.',
+      fields: [
+        { key: 'heading', label: 'Título de la sección', type: 'text', placeholder: 'Motos destacadas' },
+        {
+          key: 'subtitle',
+          label: 'Subtítulo',
+          type: 'textarea',
+          placeholder: 'Ordenadas por intención comercial: disponibilidad, precio, financiamiento y conversión esperada.',
+        },
+        { key: 'ctaLabel', label: 'Texto del botón', type: 'text', placeholder: 'Ver catálogo' },
+      ],
+    },
+    {
+      id: 'homeComoFunciona',
+      label: '"Cómo funciona"',
+      where: 'Sección de los 4 pasos, antes del pie de página.',
+      fields: [
+        { key: 'heading', label: 'Título de la sección', type: 'text', placeholder: 'Cómo funciona' },
+        {
+          key: 'steps',
+          label: 'Pasos',
+          type: 'textarea',
+          placeholder: 'Encuentra tu moto.\nCalcula enganche y mensualidad estimada.',
+          help: 'Un paso por línea — el número (1, 2, 3…) se agrega solo.',
+        },
+        { key: 'ctaLabel', label: 'Texto del botón', type: 'text', placeholder: 'Ver motos a crédito' },
+      ],
+    },
+  ],
 };
 
 /** Componentes editables aplicables a una página dada (por kind + key). */

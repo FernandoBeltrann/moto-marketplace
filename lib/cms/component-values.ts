@@ -37,6 +37,18 @@ export function serializeKeyValue(obj: Record<string, string>): string {
     .join('\n');
 }
 
+/** "Paso uno\nPaso dos" -> ['Paso uno', 'Paso dos'] (líneas vacías se descartan). Usado por pasos/listas simples sin clave (ej. "Cómo funciona" del home). */
+export function parseLines(value: string): string[] {
+  return value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function serializeLines(items: string[]): string {
+  return items.join('\n');
+}
+
 /** Nivel de heading -> tag de HTML real, con fallback seguro. */
 export function headingTag(level: number | undefined, fallback: 1 | 2 | 3 = 2): 'h1' | 'h2' | 'h3' {
   if (level === 1 || level === 2 || level === 3) return (`h${level}` as 'h1' | 'h2' | 'h3');

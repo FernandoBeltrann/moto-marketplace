@@ -82,6 +82,14 @@ export type CmsPageDoc = {
    * (checkout, cálculos, envío de formularios), que se queda 100% en código.
    */
   componentConfig?: Record<string, Record<string, string | number | boolean>>;
+  /**
+   * Orden en que se pintan las SECCIONES de una página con layout fijo (hoy
+   * solo Inicio — ver `lib/cms/layout-sections.ts`, fuente única de qué
+   * secciones existen y su orden por defecto). Lista de ids de sección; vacío
+   * o ausente = usa el orden por defecto de esa página. Un id desconocido (de
+   * una sección que ya no existe) se ignora al renderizar.
+   */
+  sectionOrder?: string[];
 };
 
 export type CmsPageStatus = 'draft' | 'published';

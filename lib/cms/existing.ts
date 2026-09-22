@@ -29,6 +29,18 @@ function slugFromBindingKey(key: string): string {
   return key.replace(/^(moto|blog|static):/, (_, k) => `${k}-`).replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
 }
 
+/**
+ * HTML semilla al importar. Antepone `<h1>{title}</h1>` SOLO si el contenido
+ * importado no trae ya su propio `<h1>` — antes se anteponía siempre y varias
+ * páginas estáticas (motos, motos-a-crédito, aviso, envío) quedaban con dos
+ * h1 (el título + el h1 real de la página), que se pintaban duplicados en la
+ * vista previa.
+ */
+function buildSeedHtml(title: string, importHtml: string): string {
+  if (/<h1[\s>]/i.test(importHtml)) return importHtml;
+  return `<h1>${title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</h1>${importHtml}`;
+}
+
 export async function getExistingPages(): Promise<ExistingPage[]> {
   const bindables = await getBindablePages();
   return bindables.map((b) => ({
@@ -38,7 +50,7 @@ export async function getExistingPages(): Promise<ExistingPage[]> {
     suggestedSlug: slugFromBindingKey(b.bindingKey),
     schemaType: b.schemaType,
     description: b.description,
-    html: `<h1>${b.title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</h1>${b.importHtml}`,
+    html: buildSeedHtml(b.title, b.importHtml),
     bindingKind: b.bindingKind,
     bindingKey: b.bindingKey,
     urlPath: b.urlPath,

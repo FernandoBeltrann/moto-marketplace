@@ -10,7 +10,7 @@
  * override (ver lib/cms/overrides.ts) — moto:<id>, blog:<id>, static:<key>.
  */
 import { getBlogPostsAny } from '@/lib/blog';
-import { getMotorcycles, cashPrice, productPath } from '@/lib/catalog';
+import { getMotorcycles, productPath } from '@/lib/catalog';
 import { blogPostPath } from '@/lib/blog';
 import type { CmsSchemaMeta } from '@/types/cms';
 
@@ -155,8 +155,6 @@ export async function getBindablePages(): Promise<BindablePage[]> {
   try {
     const motos = await getMotorcycles();
     for (const m of motos) {
-      const price = Number(cashPrice(m));
-      const img = m.imageUrl ? `<img src="${esc(m.imageUrl)}" alt="${esc(m.brand + ' ' + m.model)}"/>` : '';
       out.push({
         bindingKey: `moto:${m.id}`,
         bindingKind: 'moto',
@@ -165,10 +163,13 @@ export async function getBindablePages(): Promise<BindablePage[]> {
         schemaType: 'Article',
         title: `${m.brand} ${m.model} ${m.year}`,
         description: m.shortDescription || undefined,
-        importHtml:
-          (m.shortDescription ? `<p>${esc(m.shortDescription)}</p>` : '') +
-          img +
-          (price ? `<p>Precio desde $${price.toLocaleString('es-MX')} MXN.</p>` : ''),
+        // La ficha real de la moto YA pinta foto, descripción corta, specs y
+        // precio desde código/Directus, y el contenido del CMS se agrega DEBAJO
+        // como sección editorial (app/motos/[brand]/[slug]/page.tsx). Si la
+        // semilla los trajera otra vez, se verían duplicados en la vista
+        // previa — por eso aquí solo va el título (que además alimenta el
+        // <title> SEO) y marketing escribe lo editorial extra.
+        importHtml: '',
       });
     }
   } catch {
@@ -186,10 +187,9 @@ export async function getBindablePages(): Promise<BindablePage[]> {
         schemaType: 'Article',
         title: p.title,
         description: p.excerpt || undefined,
-        importHtml:
-          (p.excerpt ? `<p>${esc(p.excerpt)}</p>` : '') +
-          (p.coverImageUrl ? `<img src="${esc(p.coverImageUrl)}" alt="${esc(p.title)}"/>` : '') +
-          (p.body || ''),
+        // Sin la portada: app/blog/[slug]/page.tsx ya la pinta arriba del
+        // cuerpo (post.coverImageUrl); sembrarla aquí la duplicaba.
+        importHtml: (p.excerpt ? `<p>${esc(p.excerpt)}</p>` : '') + (p.body || ''),
       });
     }
   } catch {

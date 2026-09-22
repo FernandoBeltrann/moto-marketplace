@@ -123,6 +123,7 @@ export function normalizeDoc(raw: unknown, fallbackSlug = 'nueva-pagina'): CmsPa
         : undefined,
     },
     componentConfig: normalizeComponentConfig(d.componentConfig),
+    sectionOrder: normalizeSectionOrder(d.sectionOrder),
   };
 }
 
@@ -149,6 +150,18 @@ function normalizeComponentConfig(raw: unknown): CmsPageDoc['componentConfig'] {
     if (Object.keys(cleanFields).length) out[componentId] = cleanFields;
   }
   return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Orden de secciones (ver lib/cms/layout-sections.ts) — lista de ids en
+ * texto. Se valida solo la forma (array de strings no vacíos); qué ids son
+ * válidos para una página dada lo decide `resolveSectionOrder` al renderizar,
+ * no aquí, para no acoplar este archivo a qué páginas tienen layout movible.
+ */
+function normalizeSectionOrder(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const ids = raw.map((v) => str(v).trim()).filter(Boolean);
+  return ids.length ? ids : undefined;
 }
 
 export function slugify(input: string): string {

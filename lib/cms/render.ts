@@ -80,3 +80,19 @@ function renderBlock(block: CmsBlock): string {
 export function renderDocHtml(doc: CmsPageDoc): string {
   return doc.blocks.map(renderBlock).join('\n');
 }
+
+/**
+ * Para páginas reales que YA pintan su propio <h1> con `doc.title` (home, ficha
+ * de moto): el Studio toma el título del primer bloque cuando es un
+ * encabezado, así que ese bloque repite el h1 real. Esto lo omite para no
+ * pintarlo dos veces (mismo criterio que ya usa app/blog/[slug]/page.tsx).
+ * Solo omite un h1 cuyo texto coincide con el título — un encabezado h2/h3 de
+ * contenido editorial nunca se oculta.
+ */
+export function withoutLeadingTitleHeading(doc: CmsPageDoc): CmsPageDoc {
+  const first = doc.blocks[0];
+  if (first && first.type === 'heading' && first.level === 1 && first.text.trim() === doc.title.trim()) {
+    return { ...doc, blocks: doc.blocks.slice(1) };
+  }
+  return doc;
+}
