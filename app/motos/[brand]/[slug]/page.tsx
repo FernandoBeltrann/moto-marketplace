@@ -17,6 +17,11 @@ import {
 import { getMotorcycleReviews } from "@/lib/motorcycle-reviews";
 import { buildProductJsonLd, absoluteAssetUrl } from "@/lib/product-jsonld";
 import { site } from "@/lib/site";
+import { getCmsOverrideForRequest } from "@/lib/cms/overrides";
+import { renderDocHtml, withoutLeadingTitleHeading } from "@/lib/cms/render";
+import { buildPageJsonLd } from "@/lib/cms/schema-jsonld";
+import { productPath as motoProductPath } from "@/lib/catalog";
+import { parseTags, parseKeyValue, headingTag } from "@/lib/cms/component-values";
 
 export const revalidate = 120;
 
@@ -31,45 +36,79 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { brand, slug } = await params;
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) return { title: "Moto no encontrada" };
+  const { doc: override } = await getCmsOverrideForRequest(`moto:${moto.id}`, false);
+  const title = override?.title || `${moto.brand} ${moto.model} ${moto.year} a crédito`;
+  const description =
+    override?.description ||
+    `Consulta precio, mensualidad estimada y opciones de compra para ${moto.brand} ${moto.model} ${moto.year}. Financiamiento gestionado por Finva.`;
+  const ogImage = override?.ogImageUrl || (moto.imageUrl ? absoluteAssetUrl(moto.imageUrl) : undefined);
   return {
-    title: `${moto.brand} ${moto.model} ${moto.year} a crédito`,
-    description: `Consulta precio, mensualidad estimada y opciones de compra para ${moto.brand} ${moto.model} ${moto.year}. Financiamiento gestionado por Finva.`,
+    title,
+    description,
     alternates: { canonical: `${site.url}${productPath(moto)}` },
     openGraph: {
-      title: `${moto.brand} ${moto.model} ${moto.year}`,
-      description: moto.shortDescription,
+      title,
+      description,
       type: "website",
       url: `${site.url}${productPath(moto)}`,
-      images: moto.imageUrl
-        ? [{ url: absoluteAssetUrl(moto.imageUrl) }]
-        : undefined,
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: `${moto.brand} ${moto.model} ${moto.year}`,
-      description: moto.shortDescription,
-      images: moto.imageUrl ? [absoluteAssetUrl(moto.imageUrl)] : undefined,
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+type PageProps = Props & { searchParams: Promise<{ cmsPreview?: string }> };
+
+export default async function ProductPage({ params, searchParams }: PageProps) {
   const { brand, slug } = await params;
+  const sp = searchParams ? await searchParams : {};
   const moto = await getMotorcycleByPath(brand, slug);
   if (!moto) notFound();
 
   const reviews = await getMotorcycleReviews(moto.id);
   const jsonLd = buildProductJsonLd(moto, { reviews });
+  const { doc: override, isPreview } = await getCmsOverrideForRequest(`moto:${moto.id}`, sp.cmsPreview === '1');
+  // La ficha ya pinta su propio <h1> con marca/modelo/año; el primer bloque h1
+  // del CMS (que solo carga el título SEO) se omite para no duplicarlo.
+  const overrideHtml = override ? renderDocHtml(withoutLeadingTitleHeading(override)) : null;
+  const overrideJsonLd = override ? buildPageJsonLd(override, motoProductPath(moto)) : [];
+
+  // Config de componentes (lib/cms/component-registry.ts): vacío = se queda el
+  // valor real cargado desde Directus (moto.*), tal cual se ve hoy.
+  const cfgHeader = override?.componentConfig?.productHeader;
+  const cfgHighlights = override?.componentConfig?.productHighlights;
+  const eyebrow = (cfgHeader?.category as string) || moto.category;
+  const firstAnswer = (cfgHeader?.firstAnswer as string) || moto.firstAnswer;
+  const bestFor = cfgHighlights?.bestFor ? parseTags(String(cfgHighlights.bestFor)) : moto.bestFor;
+  const shortDescription = (cfgHighlights?.shortDescription as string) || moto.shortDescription;
+  const specs = cfgHighlights?.specs ? parseKeyValue(String(cfgHighlights.specs)) : moto.specs;
+  const highlightsHeading = (cfgHighlights?.heading as string) || '¿Para quién es buena?';
+  const HighlightsHeading = headingTag(cfgHighlights?.headingLevel as number, 2);
+  const specsHeading = (cfgHighlights?.specsHeading as string) || 'Ficha rápida';
+  const SpecsHeading = headingTag(cfgHighlights?.specsHeadingLevel as number, 3);
 
   const hasPhoto = Boolean(moto.imageUrl);
 
   return (
     <main className="product-hero">
       <MotorcycleViewTracker motorcycle={moto} />
+      {isPreview && (
+        <div style={{ background: '#fff3e0', color: '#7a3b00', padding: '8px 16px', textAlign: 'center', fontSize: 13 }}>
+          Vista previa del borrador — esto aún no está publicado.
+        </div>
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {overrideJsonLd.map((node, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(node) }} />
+      ))}
       <div className="container product-grid">
         <div>
           <Link href="/motos" className="small muted">
@@ -95,22 +134,22 @@ export default async function ProductPage({ params }: Props) {
               <div className="bike-line" />
             )}
           </div>
-          <section className="section" style={{ paddingTop: 26 }}>
-            <h2>¿Para quién es buena?</h2>
+          <section className="section" data-cms-region="productHighlights" style={{ paddingTop: 26 }}>
+            <HighlightsHeading>{highlightsHeading}</HighlightsHeading>
             <div className="tags">
-              {moto.bestFor.map((x) => (
+              {bestFor.map((x) => (
                 <span className="tag" key={x}>
                   {x}
                 </span>
               ))}
             </div>
-            <p>{moto.shortDescription}</p>
-            <h3>Ficha rápida</h3>
+            <p>{shortDescription}</p>
+            <SpecsHeading>{specsHeading}</SpecsHeading>
             <div
               className="grid"
               style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
             >
-              {Object.entries(moto.specs).map(([k, v]) => (
+              {Object.entries(specs).map(([k, v]) => (
                 <div className="stat" key={k}>
                   <span className="small muted">{k}</span>
                   <strong>{v}</strong>
@@ -120,16 +159,20 @@ export default async function ProductPage({ params }: Props) {
           </section>
         </div>
         <aside className="sticky-box">
-          <span className="eyebrow">{moto.category}</span>
-          <h1>
-            {moto.brand} {moto.model} {moto.year}
-          </h1>
-          <p>{moto.shortDescription}</p>
-          {moto.firstAnswer ? (
-            <p className="first-answer" style={{ fontWeight: 600 }}>
-              {moto.firstAnswer}
-            </p>
-          ) : null}
+          <div data-cms-region="productHeader">
+            <span className="eyebrow">{eyebrow}</span>
+            <h1>
+              {moto.brand} {moto.model} {moto.year}
+            </h1>
+            {/* La descripción corta se pinta UNA sola vez, en "productHighlights"
+                (columna izquierda) — que es donde el registry del CMS la ubica.
+                Antes también se repetía aquí y cada edición se veía duplicada. */}
+            {firstAnswer ? (
+              <p className="first-answer" style={{ fontWeight: 600 }}>
+                {firstAnswer}
+              </p>
+            ) : null}
+          </div>
           {/*
             Bloque de precio: controlado por `moto.showPrice` (columna
             `show_price` en Directus, default false). Mientras la columna no
@@ -180,7 +223,13 @@ export default async function ProductPage({ params }: Props) {
           </p>
         </aside>
       </div>
-      <MotorcycleReviews reviews={reviews} />
+      {overrideHtml && (
+        <section className="section">
+          {/* Contenido editorial de marketing (CMS) — HTML ya saneado por renderDocHtml. */}
+          <div className="container cms-page-body" style={{ maxWidth: 820 }} dangerouslySetInnerHTML={{ __html: overrideHtml }} />
+        </section>
+      )}
+      <MotorcycleReviews reviews={reviews} title={override?.componentConfig?.reviews?.title as string | undefined} titleLevel={override?.componentConfig?.reviews?.titleLevel as number | undefined} />
     </main>
   );
 }

@@ -8,7 +8,7 @@ import { MotorcycleCard } from './MotorcycleCard';
 import { trackCatalogFilter } from '@/lib/gtm';
 import { track } from '@/lib/analytics';
 
-export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
+export function CatalogClient({ motos, emptyStateMessage }: { motos: Motorcycle[]; emptyStateMessage?: string }) {
   const searchParams = useSearchParams();
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState(() => searchParams.get('brand') ?? '');
@@ -96,7 +96,13 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
         </select>
       </div>
       <p className="small muted">{filtered.length} motos encontradas</p>
-      <div className="grid">{filtered.map((m) => <MotorcycleCard moto={m} key={m.id} />)}</div>
+      {filtered.length === 0 ? (
+        <p className="small muted" data-cms-region="catalogEmptyState" style={{ padding: '18px 0' }}>
+          {emptyStateMessage || 'No encontramos motos con esos filtros. Prueba ajustando tu búsqueda.'}
+        </p>
+      ) : (
+        <div className="grid">{filtered.map((m) => <MotorcycleCard moto={m} key={m.id} />)}</div>
+      )}
     </>
   );
 }

@@ -13,3 +13,5 @@ skills-lock.json
 
 # Markdwons and local documentation
 docs/
+.cms-fase1.env
+.venv/

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getMotorcycles, productPath } from '@/lib/catalog';
 import { getBlogPosts, blogPostPath, blogPostDate } from '@/lib/blog';
+import { getPublishedSitemapEntries } from '@/lib/cms/pages';
 import { site } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -8,6 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: site.url, lastModified: new Date() },
     { url: `${site.url}/motos`, lastModified: new Date() },
     { url: `${site.url}/motos-a-credito`, lastModified: new Date() },
+    { url: `${site.url}/asi-funciona-comprar-tu-moto-a-credito-con-motoclick`, lastModified: new Date() },
     { url: `${site.url}/envio-garantia`, lastModified: new Date() },
     { url: `${site.url}/aviso-de-privacidad`, lastModified: new Date() },
     { url: `${site.url}/blog`, lastModified: new Date() },
@@ -25,5 +27,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${site.url}${blogPostPath(p)}`,
     lastModified: new Date(blogPostDate(p)),
   }));
-  return [...base, ...products, ...blogEntries];
+  const cms = await getPublishedSitemapEntries();
+  const cmsEntries = cms.map((c) => ({
+    url: `${site.url}${c.urlPath}`,
+    lastModified: c.updatedAt ? new Date(c.updatedAt) : new Date(),
+  }));
+  return [...base, ...products, ...blogEntries, ...cmsEntries];
 }

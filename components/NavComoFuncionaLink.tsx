@@ -1,13 +1,8 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
-/** En la home basta `#…`; en otras rutas hay que ir a `/#…` para que exista el id en el documento. */
+/** Enlaza al paso "Aprueba" de la página dedicada "Así funciona…". */
 export function NavComoFuncionaLink() {
-  const pathname = usePathname();
-  if (pathname === '/') {
-    return <a href="#como-funciona">Cómo funciona</a>;
-  }
-  return <Link href="/#como-funciona">Cómo funciona</Link>;
+  return (
+    <Link href="/asi-funciona-comprar-tu-moto-a-credito-con-motoclick">Cómo funciona</Link>
+  );
 }

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import './globals.css';
 import Link from 'next/link';
 import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
 import { GoogleTag } from '@/components/GoogleTag';
+import { CmsRegionHighlighter } from '@/components/cms/CmsRegionHighlighter';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
 import { PostHogInit } from '@/components/PostHogInit';
@@ -51,16 +51,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es-MX">
       <body>
-        {posthogToken ? (
-          <Script
-            id="posthog-token"
-            strategy="beforeInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `window.__POSTHOG_TOKEN__=${JSON.stringify(posthogToken)};`,
-            }}
-          />
-        ) : null}
-        <PostHogInit />
+        <PostHogInit token={posthogToken} />
+        <CmsRegionHighlighter />
         <GoogleTagManager />
         <GoogleTag />
         <MetaPixel />
