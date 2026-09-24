@@ -59,6 +59,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       images: ogImage ? [ogImage] : undefined,
     },
+    twitter: {
+      card: "summary_large_image",
+      title: `${moto.brand} ${moto.model} ${moto.year}`,
+      description: moto.shortDescription,
+      images: moto.imageUrl ? [absoluteAssetUrl(moto.imageUrl)] : undefined,
+    },
   };
 }
 
