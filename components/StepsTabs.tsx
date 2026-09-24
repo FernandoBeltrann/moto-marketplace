@@ -20,7 +20,7 @@ const STEPS: StepMeta[] = [
  * porque comparten el mismo estado de "paso activo".
  *
  * IMPORTANTE para SEO/rastreo (nota del prototipo de referencia): los 4
- * `panels` se reciben ya armados (con su H2, párrafos y acordeón de FAQ) y
+ * `panels` se reciben ya armados (acordeón de FAQ y demás contenido) y
  * los 4 se montan SIEMPRE en el DOM — nunca se agregan o quitan según el
  * paso activo. Lo único que cambia al hacer click es una clase CSS
  * (`steps-tabs__panel--active`, ver globals.css) que hace `display: block`
@@ -34,16 +34,16 @@ export function StepsTabs({ panels }: { panels: Record<StepId, ReactNode> }) {
 
   // Soporte para enlaces directos tipo .../asi-funciona-...#aprueba: al
   // cargar (o si el hash cambia estando ya en la página) activamos el panel
-  // correspondiente y hacemos scroll hasta su H2 — si no, ese paso se
-  // quedaría con `display:none` y el navegador no tendría nada visible a
-  // donde saltar aunque la URL sí traiga el "#paso".
+  // correspondiente y hacemos scroll hasta él — si no, ese paso se quedaría
+  // con `display:none` y el navegador no tendría nada visible a donde
+  // saltar aunque la URL sí traiga el "#paso".
   useEffect(() => {
     const syncFromHash = () => {
       const hash = window.location.hash.slice(1);
       if (!STEP_IDS.includes(hash as StepId)) return;
       setActive(hash as StepId);
       requestAnimationFrame(() => {
-        document.getElementById(hash)?.scrollIntoView({ block: 'start' });
+        document.getElementById(`panel-${hash}`)?.scrollIntoView({ block: 'start' });
       });
     };
     syncFromHash();

@@ -1163,6 +1163,7 @@ p { color: var(--muted); line-height: 1.6; }
   border-radius: 16px;
   overflow: hidden;
 }
+.faq-accordion__heading { margin: 0; font-size: inherit; font-weight: inherit; }
 .faq-accordion__question {
   width: 100%;
   display: flex;

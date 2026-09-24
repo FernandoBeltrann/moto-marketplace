@@ -24,17 +24,19 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
         const isOpen = item.id === openId;
         return (
           <div key={item.id} className="faq-accordion__item">
-            <button
-              type="button"
-              className="faq-accordion__question"
-              aria-expanded={isOpen}
-              onClick={() => setOpenId(isOpen ? null : item.id)}
-            >
-              <span>{item.question}</span>
-              <span className="faq-accordion__icon" aria-hidden="true">
-                {isOpen ? '×' : '+'}
-              </span>
-            </button>
+            <h3 className="faq-accordion__heading">
+              <button
+                type="button"
+                className="faq-accordion__question"
+                aria-expanded={isOpen}
+                onClick={() => setOpenId(isOpen ? null : item.id)}
+              >
+                <span>{item.question}</span>
+                <span className="faq-accordion__icon" aria-hidden="true">
+                  {isOpen ? '×' : '+'}
+                </span>
+              </button>
+            </h3>
             <div className={'faq-accordion__answer' + (isOpen ? ' faq-accordion__answer--open' : '')}>
               <div className="faq-accordion__answer-inner">
                 <p dangerouslySetInnerHTML={{ __html: item.answer }} />

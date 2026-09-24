@@ -216,7 +216,6 @@ export default function AsiFuncionaPage() {
           panels={{
             selecciona: (
               <>
-                <h2 id="selecciona">1. Selecciona</h2>
                 <FaqAccordion items={SELECCIONA_FAQS} />
                 <h3>Lo que dicen nuestros clientes</h3>
                 <div className="testimonials-grid">
@@ -235,7 +234,6 @@ export default function AsiFuncionaPage() {
             ),
             aplica: (
               <>
-                <h2 id="aplica">2. Aplica</h2>
                 <FaqAccordion items={APLICA_FAQS} />
                 <div className="cta-box">
                   <Link className="btn green" href="/motos-a-credito">
@@ -247,14 +245,12 @@ export default function AsiFuncionaPage() {
             ),
             aprueba: (
               <>
-                <h2 id="aprueba">3. Aprueba</h2>
                 <FaqAccordion items={APRUEBA_FAQS} />
                 <p className="flow-note">{APRUEBA_FLOW}</p>
               </>
             ),
             estrena: (
               <>
-                <h2 id="estrena">4. Estrena</h2>
                 <FaqAccordion items={ESTRENA_FAQS} />
                 <p className="flow-note">{ESTRENA_FLOW}</p>
               </>
