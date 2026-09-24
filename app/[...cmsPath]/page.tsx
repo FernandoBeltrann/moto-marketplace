@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPublishedPageByUrlPath, getPublishedStandaloneUrlPaths } from '@/lib/cms/pages';
-import { getCmsPreviewDocForPage } from '@/lib/cms/overrides';
+import { getPublishedPageByUrlPath, getPublishedStandaloneUrlPaths, getPageByUrlPathAny } from '@/lib/cms/pages';
+import { getCmsPreviewDocForPage, hasCmsSession } from '@/lib/cms/overrides';
 import { renderDocHtml } from '@/lib/cms/render';
 import { buildPageJsonLd } from '@/lib/cms/schema-jsonld';
 import { site } from '@/lib/site';
@@ -30,10 +30,18 @@ export async function generateStaticParams() {
     .map((p) => ({ cmsPath: p.replace(/^\//, '').split('/').filter(Boolean) }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { cmsPath } = await params;
+  const { cmsPreview } = await searchParams;
   const urlPath = toUrlPath(cmsPath);
-  const page = await getPublishedPageByUrlPath(urlPath);
+  let page = await getPublishedPageByUrlPath(urlPath);
+  // Un borrador standalone que aún no se ha publicado no existe para
+  // getPublishedPageByUrlPath — sin esto, la pestaña del navegador decía
+  // "Página no encontrada" incluso cuando el body de abajo sí lograba
+  // mostrar la vista previa. Mismo criterio de sesión que el body.
+  if (!page && cmsPreview === '1' && (await hasCmsSession())) {
+    page = await getPageByUrlPathAny(urlPath);
+  }
   if (!page) return { title: 'Página no encontrada' };
   const doc = page.draftDoc; // metadata usa el título/desc actual publicado (draft == published tras publicar)
   const description = doc.description || site.description;
@@ -58,11 +66,20 @@ export default async function CmsStandalonePage({ params, searchParams }: Props)
   // bound (moto/blog/estáticas), que sí resuelve por bindingKey.
   let doc = page?.publishedDoc ?? null;
   let isPreview = false;
-  if (cmsPreview === '1' && page) {
-    const preview = await getCmsPreviewDocForPage(page.id);
-    if (preview) {
-      doc = preview;
-      isPreview = true;
+  if (cmsPreview === '1') {
+    // Antes esto solo corría si `page` ya existía (es decir, si la página YA
+    // estaba publicada) — un borrador guardado pero nunca publicado no tenía
+    // fila que pasara ese filtro, así que su vista previa daba 404 aunque
+    // "Guardar cambios" hubiera funcionado bien. Ahora, si no se encontró
+    // publicada, se busca la página sin filtro de publicado — el draft solo
+    // se expone si getCmsPreviewDocForPage confirma sesión válida del Studio.
+    const pageForPreview = page ?? (await getPageByUrlPathAny(urlPath));
+    if (pageForPreview) {
+      const preview = await getCmsPreviewDocForPage(pageForPreview.id);
+      if (preview) {
+        doc = preview;
+        isPreview = true;
+      }
     }
   }
   if (!doc) notFound();

@@ -68,6 +68,24 @@ export async function getPublishedPageByUrlPath(urlPath: string): Promise<CmsPag
   return data ? mapPage(data) : null;
 }
 
+/**
+ * Página CMS por urlPath SIN filtrar por publicado — para la vista previa del
+ * borrador de una página standalone que aún no se ha publicado. Sin esto, el
+ * catch-all (app/[...cmsPath]) solo encontraba la página vía
+ * getPublishedPageByUrlPath (arriba), así que un borrador guardado pero nunca
+ * publicado no tenía forma de mostrarse en preview — daba 404 aunque
+ * "Guardar cambios" sí hubiera funcionado. El caller (el catch-all) solo debe
+ * usar esto cuando la visita trae `?cmsPreview=1`, y aun así
+ * `getCmsPreviewDocForPage` exige sesión válida del Studio antes de exponer
+ * el draft — este helper por sí solo no filtra por sesión.
+ */
+export async function getPageByUrlPathAny(urlPath: string): Promise<CmsPage | null> {
+  if (!supabaseConfigured()) return null;
+  const sb = createServiceSupabase();
+  const { data } = await sb.from('cms_pages').select('*').eq('url_path', urlPath).maybeSingle();
+  return data ? mapPage(data) : null;
+}
+
 export async function getPublishedSlugs(): Promise<string[]> {
   if (!supabaseConfigured()) return [];
   const sb = createServiceSupabase();
