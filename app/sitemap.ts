@@ -9,6 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: site.url, lastModified: new Date() },
     { url: `${site.url}/motos`, lastModified: new Date() },
     { url: `${site.url}/motos-a-credito`, lastModified: new Date() },
+    { url: `${site.url}/asi-funciona-comprar-tu-moto-a-credito-con-motoclick`, lastModified: new Date() },
     { url: `${site.url}/envio-garantia`, lastModified: new Date() },
     { url: `${site.url}/aviso-de-privacidad`, lastModified: new Date() },
     { url: `${site.url}/blog`, lastModified: new Date() },
