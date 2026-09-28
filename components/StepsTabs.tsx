@@ -61,6 +61,7 @@ export function StepsTabs({ panels }: { panels: Record<StepId, ReactNode> }) {
               key={step.id}
               type="button"
               role="tab"
+              id={`tab-${step.id}`}
               aria-selected={isActive}
               aria-controls={`panel-${step.id}`}
               className={'steps-tabs__pill' + (isActive ? ' steps-tabs__pill--active' : '')}
@@ -78,6 +79,7 @@ export function StepsTabs({ panels }: { panels: Record<StepId, ReactNode> }) {
           key={step.id}
           id={`panel-${step.id}`}
           role="tabpanel"
+          aria-labelledby={`tab-${step.id}`}
           className={'steps-tabs__panel' + (step.id === active ? ' steps-tabs__panel--active' : '')}
         >
           {panels[step.id]}

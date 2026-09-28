@@ -3,6 +3,11 @@ import Link from 'next/link';
 import { site } from '@/lib/site';
 import { StepsTabs } from '@/components/StepsTabs';
 import { FaqAccordion, type FaqItem } from '@/components/FaqAccordion';
+import { ApplyCreditCta } from '@/components/ApplyCreditCta';
+import { getMotorcycles } from '@/lib/catalog';
+import { cashPrice } from '@/lib/catalog-format';
+
+export const revalidate = 120;
 
 // Contenido tomado del prototipo de referencia (artifact de Diego).
 const SELECCIONA_FAQS: FaqItem[] = [
@@ -73,7 +78,7 @@ const APLICA_FAQS: FaqItem[] = [
     id: 'datos-seguros',
     question: '¿Es seguro compartir mis datos personales con MotoClick?',
     answer:
-      'Tus datos los usa FINVA únicamente para evaluar tu perfil crediticio, y solo se comparten con la financiera a la que te referimos, para que te acepten en su sistema. No se comparten con nadie más. Es muy importante completar todo el proceso de aplicación: puedes revisar nuestro <a href="/aviso-de-privacidad">aviso de privacidad</a>, nuestros testimoniales, y confirmar que FINVA es una empresa constituida legalmente bajo las leyes mexicanas.',
+      'Tus datos los usa FINVA únicamente para evaluar tu perfil crediticio, y solo se comparten con la financiera a la que te referimos, para que te acepten en su sistema. No se comparten con nadie más. Es muy importante completar todo el proceso de aplicación: puedes revisar nuestro <a href="/aviso-de-privacidad">aviso de privacidad</a> y confirmar que FINVA es una empresa constituida legalmente bajo las leyes mexicanas.',
   },
   {
     id: 'tiempo-aprobacion',
@@ -195,7 +200,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AsiFuncionaPage() {
+export default async function AsiFuncionaPage() {
+  const motos = (await getMotorcycles()).map((m) => ({
+    id: m.id,
+    brand: m.brand,
+    model: m.model,
+    year: m.year,
+    slug: m.slug,
+    price: cashPrice(m),
+    suggestedDownPayment: m.suggestedDownPayment,
+    finvaMotorcycleId: m.finvaMotorcycleId ?? null,
+    purchaseUrl: m.purchaseUrl ?? null,
+    imageUrl: m.imageUrl ?? null,
+  }));
   return (
     <main className="section">
       <div className="container" style={{ maxWidth: 720 }}>
@@ -216,41 +233,30 @@ export default function AsiFuncionaPage() {
           panels={{
             selecciona: (
               <>
+                <h2>Selecciona tu moto</h2>
                 <FaqAccordion items={SELECCIONA_FAQS} />
-                <h3>Lo que dicen nuestros clientes</h3>
-                <div className="testimonials-grid">
-                  <div className="testimonial-card">
-                    <span className="testimonial-card__label">🎬 Testimonio en video</span>
-                    <span className="testimonial-card__note">
-                      (pendiente de producción — micro-campaña de recolección)
-                    </span>
-                  </div>
-                  <div className="testimonial-card">
-                    <span className="testimonial-card__label">⭐ Reseñas de Google</span>
-                    <span className="testimonial-card__note">(placeholder — enlazar a reseñas reales cuando existan)</span>
-                  </div>
-                </div>
               </>
             ),
             aplica: (
               <>
+                <h2>Aplica para tu crédito</h2>
                 <FaqAccordion items={APLICA_FAQS} />
                 <div className="cta-box">
-                  <Link className="btn green" href="/motos-a-credito">
-                    Aplica tu crédito ahora
-                  </Link>
+                  <ApplyCreditCta motos={motos} />
                   <div className="cta-box__sub">Sin compromiso · Un agente FINVA te acompaña desde el primer paso</div>
                 </div>
               </>
             ),
             aprueba: (
               <>
+                <h2>Aprueba tu crédito</h2>
                 <FaqAccordion items={APRUEBA_FAQS} />
                 <p className="flow-note">{APRUEBA_FLOW}</p>
               </>
             ),
             estrena: (
               <>
+                <h2>Estrena tu moto</h2>
                 <FaqAccordion items={ESTRENA_FAQS} />
                 <p className="flow-note">{ESTRENA_FLOW}</p>
               </>
