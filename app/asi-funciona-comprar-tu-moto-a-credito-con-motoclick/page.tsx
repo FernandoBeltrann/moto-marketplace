@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { site } from '@/lib/site';
 import { StepsTabs } from '@/components/StepsTabs';
 import { FaqAccordion, type FaqItem } from '@/components/FaqAccordion';
+import { buildAsiFuncionaJsonLd } from '@/lib/asi-funciona-jsonld';
 import { ApplyCreditCta } from '@/components/ApplyCreditCta';
 import { getMotorcycles } from '@/lib/catalog';
 import { cashPrice } from '@/lib/catalog-format';
@@ -191,10 +192,12 @@ const APRUEBA_FLOW =
   'Flujo completo: Aprobación → Aceptación de oferta → Pago de enganche (si aplica) → Firma de contrato → Preparación de documentación → Entrega / Estrena.';
 const ESTRENA_FLOW = 'Canal de acompañamiento: WhatsApp, con el agente FINVA presente desde el primer paso hasta la entrega.';
 
+const PAGE_DESCRIPTION =
+  'Los 4 pasos para comprar tu moto a crédito con MotoClick: selecciona, aplica, aprueba y estrena. Resuelve tus dudas para elegir la moto correcta para ti.';
+
 export const metadata: Metadata = {
   title: 'Así funciona comprar tu moto a crédito con Motoclick',
-  description:
-    'Los 4 pasos para comprar tu moto a crédito con Motoclick: selecciona, aplica, aprueba y estrena. Resuelve tus dudas para elegir la moto correcta para ti.',
+  description: PAGE_DESCRIPTION,
   alternates: {
     canonical: `${site.url.replace(/\/$/, '')}/asi-funciona-comprar-tu-moto-a-credito-con-motoclick`,
   },
@@ -215,6 +218,20 @@ export default async function AsiFuncionaPage() {
   }));
   return (
     <main className="section">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            buildAsiFuncionaJsonLd(
+              [...SELECCIONA_FAQS, ...APLICA_FAQS, ...APRUEBA_FAQS, ...ESTRENA_FAQS].map((f) => ({
+                question: f.question,
+                answer: f.answer,
+              })),
+              PAGE_DESCRIPTION,
+            ),
+          ).replace(/</g, '\\u003c'),
+        }}
+      />
       <div className="container" style={{ maxWidth: 720 }}>
         <p className="small muted" style={{ marginBottom: 12 }}>
           <Link href="/">Inicio</Link>

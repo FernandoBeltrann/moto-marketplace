@@ -16,6 +16,7 @@ export function buildOrganizationJsonLd(): Record<string, unknown> {
   return {
     '@context': CONTEXT,
     '@type': 'Organization',
+    '@id': `${base}/#organization`,
     name: site.name,
     url: base,
     logo: `${base}${site.logoPath}`,
@@ -28,6 +29,7 @@ export function buildWebsiteJsonLd(): Record<string, unknown> {
   return {
     '@context': CONTEXT,
     '@type': 'WebSite',
+    '@id': `${base}/#website`,
     name: site.name,
     url: base,
     description: site.description,
