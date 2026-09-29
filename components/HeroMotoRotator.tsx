@@ -10,7 +10,7 @@ const ROTATE_MS = 5500;
 
 type Props = {
   slides: Motorcycle[];
-  /** Si se define, la imagen enlaza aquí (p. ej. "#como-funciona") en vez de a la ficha de la moto. */
+  /** Si se define, la imagen enlaza aquí (p. ej. "/asi-funciona-…") en vez de a la ficha de la moto. */
   href?: string;
   /** aria-label del enlace cuando se usa `href` personalizado. */
   linkLabel?: string;

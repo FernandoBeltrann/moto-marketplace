@@ -28,7 +28,7 @@ export default async function HomePage() {
   const featured = all.slice(0, 6);
   const heroSlides = all.filter((m) => m.imageUrl).slice(0, 8);
 
-  // Orden de secciones de la versión 40: hero, (cms-extra: vacío), cómo funciona, destacadas.
+  // Secciones del home: hero y destacadas (el bloque "Cómo funciona" se quitó; ahora vive en su página dedicada).
   const sections: ReactNode[] = [
       <section className="hero" key="hero">
         <div className="container hero-grid">
@@ -39,30 +39,13 @@ export default async function HomePage() {
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
-            <HeroMotoRotator slides={heroSlides} href="#como-funciona" linkLabel="Ver cómo funciona" />
+            <HeroMotoRotator slides={heroSlides} href="/asi-funciona-comprar-tu-moto-a-credito-con-motoclick" linkLabel="Ver cómo funciona" />
             <div className="kpi-strip">
               <div className="kpi"><strong>1</strong><span className="small muted">Elige moto</span></div>
               <div className="kpi"><strong>2</strong><span className="small muted">Calcula pago</span></div>
               <div className="kpi"><strong>3</strong><span className="small muted">Inicia compra</span></div>
               <div className="kpi"><strong>4</strong><span className="small muted">Finva gestiona</span></div>
             </div>
-          </div>
-        </div>
-      </section>,
-
-      <section id="como-funciona" className="section--como-fullpage" aria-labelledby="como-funciona-title" key="como-funciona">
-        <div className="como-funciona-shell">
-          <div className="hero-card hero-card--como-fullpage">
-            <div className="como-funciona-body">
-              <h3 id="como-funciona-title">Cómo funciona</h3>
-              <div className="como-funciona-steps">
-                <p><strong>1.</strong> Encuentra tu moto.</p>
-                <p><strong>2.</strong> Calcula enganche y mensualidad estimada.</p>
-                <p><strong>3.</strong> WhatsApp e intención de compra.</p>
-                <p><strong>4.</strong> Finva continúa evaluación, documentos, aprobación y cierre.</p>
-              </div>
-            </div>
-            <Link className="btn green full como-funciona-cta" href="/motos-a-credito">Ver motos a crédito</Link>
           </div>
         </div>
       </section>,
