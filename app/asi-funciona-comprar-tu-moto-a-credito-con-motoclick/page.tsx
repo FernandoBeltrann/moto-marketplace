@@ -216,6 +216,14 @@ export default async function AsiFuncionaPage() {
     purchaseUrl: m.purchaseUrl ?? null,
     imageUrl: m.imageUrl ?? null,
   }));
+  // Mismo CTA "Aplica tu crédito ahora" al final de cada uno de los 4 pasos
+  // (cada panel monta su propia instancia, con estado independiente).
+  const applyCta = (
+    <div className="cta-box">
+      <ApplyCreditCta motos={motos} />
+      <div className="cta-box__sub">Sin compromiso · Un agente FINVA te acompaña desde el primer paso</div>
+    </div>
+  );
   return (
     <main className="section">
       <script
@@ -252,16 +260,14 @@ export default async function AsiFuncionaPage() {
               <>
                 <h2>Selecciona tu moto</h2>
                 <FaqAccordion items={SELECCIONA_FAQS} />
+                {applyCta}
               </>
             ),
             aplica: (
               <>
                 <h2>Aplica para tu crédito</h2>
                 <FaqAccordion items={APLICA_FAQS} />
-                <div className="cta-box">
-                  <ApplyCreditCta motos={motos} />
-                  <div className="cta-box__sub">Sin compromiso · Un agente FINVA te acompaña desde el primer paso</div>
-                </div>
+                {applyCta}
               </>
             ),
             aprueba: (
@@ -269,6 +275,7 @@ export default async function AsiFuncionaPage() {
                 <h2>Aprueba tu crédito</h2>
                 <FaqAccordion items={APRUEBA_FAQS} />
                 <p className="flow-note">{APRUEBA_FLOW}</p>
+                {applyCta}
               </>
             ),
             estrena: (
@@ -276,6 +283,7 @@ export default async function AsiFuncionaPage() {
                 <h2>Estrena tu moto</h2>
                 <FaqAccordion items={ESTRENA_FAQS} />
                 <p className="flow-note">{ESTRENA_FLOW}</p>
+                {applyCta}
               </>
             ),
           }}
