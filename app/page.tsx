@@ -47,7 +47,7 @@ export default async function HomePage() {
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
-            <HeroMotoRotator slides={heroSlides} />
+            <HeroMotoRotator slides={heroSlides} href="#como-funciona" linkLabel="Ver cómo funciona" />
             <div className="kpi-strip">
               <div className="kpi"><strong>1</strong><span className="small muted">Elige moto</span></div>
               <div className="kpi"><strong>2</strong><span className="small muted">Calcula pago</span></div>

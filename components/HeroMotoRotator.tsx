@@ -8,9 +8,15 @@ import type { Motorcycle } from '@/types/motorcycle';
 
 const ROTATE_MS = 5500;
 
-type Props = { slides: Motorcycle[] };
+type Props = {
+  slides: Motorcycle[];
+  /** Si se define, la imagen enlaza aquí (p. ej. "#como-funciona") en vez de a la ficha de la moto. */
+  href?: string;
+  /** aria-label del enlace cuando se usa `href` personalizado. */
+  linkLabel?: string;
+};
 
-export function HeroMotoRotator({ slides }: Props) {
+export function HeroMotoRotator({ slides, href, linkLabel }: Props) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -41,10 +47,10 @@ export function HeroMotoRotator({ slides }: Props) {
 
   return (
     <Link
-      href={productPath(m)}
+      href={href ?? productPath(m)}
       className="bike-visual bike-visual--photo hero-moto-rotator"
       style={{ borderRadius: 24 }}
-      aria-label={`Ver ${m.brand} ${m.model}`}
+      aria-label={href ? (linkLabel ?? `Ver ${m.brand} ${m.model}`) : `Ver ${m.brand} ${m.model}`}
     >
       <Image
         key={m.id}
