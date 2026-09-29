@@ -22,14 +22,6 @@ const HERO_DESCRIPTION =
 const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
 const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
 const FEATURED_CTA = 'Ver catálogo';
-const COMO_HEADING = 'Así te conectamos con la financiera ideal';
-const COMO_STEPS = [
-  'Elige tu moto: Filtra por marca, uso y presupuesto.',
-  'Evaluamos tu perfil: Finva revisa tu historial y capacidad de pago.',
-  'Te conectamos con la financiera ideal: La que tiene más probabilidad de aprobarte.',
-  'Estrena: Firmas con la financiera y la agencia te entrega tu moto.',
-];
-const COMO_CTA = 'Conoce más';
 
 export default async function HomePage() {
   const [all, brands] = await Promise.all([getMotorcycles(), getBrands()]);
@@ -62,14 +54,15 @@ export default async function HomePage() {
         <div className="como-funciona-shell">
           <div className="hero-card hero-card--como-fullpage">
             <div className="como-funciona-body">
-              <h3 id="como-funciona-title">{COMO_HEADING}</h3>
+              <h3 id="como-funciona-title">Cómo funciona</h3>
               <div className="como-funciona-steps">
-                {COMO_STEPS.map((step, i) => (
-                  <p key={i}><strong>{i + 1}.</strong> {step}</p>
-                ))}
+                <p><strong>1.</strong> Encuentra tu moto.</p>
+                <p><strong>2.</strong> Calcula enganche y mensualidad estimada.</p>
+                <p><strong>3.</strong> WhatsApp e intención de compra.</p>
+                <p><strong>4.</strong> Finva continúa evaluación, documentos, aprobación y cierre.</p>
               </div>
             </div>
-            <Link className="btn green full como-funciona-cta" href="/motos-a-credito">{COMO_CTA}</Link>
+            <Link className="btn green full como-funciona-cta" href="/motos-a-credito">Ver motos a crédito</Link>
           </div>
         </div>
       </section>,
