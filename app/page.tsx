@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
-import { HeroMotoRotator } from '@/components/HeroMotoRotator';
+import { HeroVideoCard } from '@/components/HeroVideoCard';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getBrands, getMotorcycles } from '@/lib/catalog';
+import { toApplyCreditMoto } from '@/lib/catalog-format';
 
 export const revalidate = 120;
 
@@ -22,11 +23,17 @@ const HERO_DESCRIPTION =
 const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
 const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
 const FEATURED_CTA = 'Ver catálogo';
+/** Short "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI). */
+const HERO_VIDEO_ID = 'RlHX_EdgMkI';
+/** Los 4 pasos bajo la foto del hero. */
+const HERO_STEPS = ['Selecciona tu moto', 'Aplica', 'Aprueba', 'Estrena'];
 
 export default async function HomePage() {
   const [all, brands] = await Promise.all([getMotorcycles(), getBrands()]);
   const featured = all.slice(0, 6);
   const heroSlides = all.filter((m) => m.imageUrl).slice(0, 8);
+  // Catálogo para el "Aplica ahora" del modal del video (selector marca/moto → modal de Finva).
+  const applyMotos = all.map(toApplyCreditMoto);
 
   // Secciones del home: hero y destacadas (el bloque "Cómo funciona" se quitó; ahora vive en su página dedicada).
   const sections: ReactNode[] = [
@@ -39,13 +46,12 @@ export default async function HomePage() {
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
-            <HeroMotoRotator slides={heroSlides} href="/asi-funciona-comprar-tu-moto-a-credito-con-motoclick" linkLabel="Ver cómo funciona" />
-            <div className="kpi-strip">
-              <div className="kpi"><strong>1</strong><span className="small muted">Elige moto</span></div>
-              <div className="kpi"><strong>2</strong><span className="small muted">Calcula pago</span></div>
-              <div className="kpi"><strong>3</strong><span className="small muted">Inicia compra</span></div>
-              <div className="kpi"><strong>4</strong><span className="small muted">Finva gestiona</span></div>
-            </div>
+            <HeroVideoCard slides={heroSlides} videoId={HERO_VIDEO_ID} applyMotos={applyMotos} />
+            <ol className="kpi-strip" aria-label="Cómo comprar tu moto en 4 pasos">
+              {HERO_STEPS.map((step, i) => (
+                <li className="kpi" key={step}><strong>{i + 1}</strong><span className="small muted">{step}</span></li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>,

@@ -14,9 +14,14 @@ type Props = {
   href?: string;
   /** aria-label del enlace cuando se usa `href` personalizado. */
   linkLabel?: string;
+  /**
+   * `false` = solo muestra las fotos (sin <Link>), para meter el carrusel dentro de
+   * otro elemento interactivo, p. ej. el <button> de HeroVideoCard. Default: true.
+   */
+  interactive?: boolean;
 };
 
-export function HeroMotoRotator({ slides, href, linkLabel }: Props) {
+export function HeroMotoRotator({ slides, href, linkLabel, interactive = true }: Props) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -37,13 +42,41 @@ export function HeroMotoRotator({ slides, href, linkLabel }: Props) {
 
   if (slides.length === 0) {
     return (
-      <div className="bike-visual" style={{ borderRadius: 24 }} aria-hidden>
-        <div className="bike-line" />
-      </div>
+      <span className="bike-visual" style={{ borderRadius: 24 }} aria-hidden>
+        <span className="bike-line" />
+      </span>
     );
   }
 
   const m = slides[index];
+
+  const image = (
+    <Image
+      key={m.id}
+      src={m.imageUrl!}
+      alt={`${m.brand} ${m.model} ${m.year}`}
+      fill
+      className="bike-visual__img hero-moto-rotator__img"
+      sizes="(max-width: 900px) 100vw, 400px"
+      priority={index === 0}
+    />
+  );
+  const liveLabel =
+    slides.length > 1 ? (
+      <span className="hero-moto-rotator__sr" aria-live="polite">
+        {m.brand} {m.model}
+      </span>
+    ) : null;
+
+  // Mismas clases que la versión con enlace → mismo tamaño y misma imagen (no afecta LCP/CLS).
+  if (!interactive) {
+    return (
+      <span className="bike-visual bike-visual--photo hero-moto-rotator" style={{ borderRadius: 24 }}>
+        {image}
+        {liveLabel}
+      </span>
+    );
+  }
 
   return (
     <Link
@@ -52,20 +85,8 @@ export function HeroMotoRotator({ slides, href, linkLabel }: Props) {
       style={{ borderRadius: 24 }}
       aria-label={href ? (linkLabel ?? `Ver ${m.brand} ${m.model}`) : `Ver ${m.brand} ${m.model}`}
     >
-      <Image
-        key={m.id}
-        src={m.imageUrl!}
-        alt={`${m.brand} ${m.model} ${m.year}`}
-        fill
-        className="bike-visual__img hero-moto-rotator__img"
-        sizes="(max-width: 900px) 100vw, 400px"
-        priority={index === 0}
-      />
-      {slides.length > 1 ? (
-        <span className="hero-moto-rotator__sr" aria-live="polite">
-          {m.brand} {m.model}
-        </span>
-      ) : null}
+      {image}
+      {liveLabel}
     </Link>
   );
 }

@@ -1224,3 +1224,123 @@ p { color: var(--muted); line-height: 1.6; }
 .apply-cta__thumb-name { font-size: 12.5px; font-weight: 700; line-height: 1.25; }
 .apply-cta__arrow { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--green-dark); font-size: 20px; line-height: 1; cursor: pointer; }
 .flow-note { margin: 16px 0 0; padding: 16px 18px; background: var(--soft); border-radius: 12px; font-size: 14.5px; color: var(--green-dark); }
+
+/* ── Hero del home: foto con play → modal con el Short de YouTube (components/HeroVideoCard.tsx) ── */
+ol.kpi-strip { list-style: none; padding: 0; margin-bottom: 0; }
+.hero-video-trigger {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: inherit;
+  border-radius: 24px;
+  cursor: pointer;
+}
+.hero-video-trigger:focus-visible { outline: 3px solid var(--green-dark); outline-offset: 4px; }
+.hero-video-trigger__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  pointer-events: none;
+}
+.hero-video-trigger__play {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  padding-left: 4px; /* centra ópticamente el triángulo */
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 10px 30px rgba(13, 27, 18, .28);
+  transition: transform .18s ease, background-color .18s ease;
+}
+.hero-video-trigger__badge {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13, 27, 18, .82);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.hero-video-trigger:hover .hero-video-trigger__play,
+.hero-video-trigger:focus-visible .hero-video-trigger__play { transform: scale(1.1); background: var(--green-dark); }
+@media (prefers-reduced-motion: reduce) {
+  .hero-video-trigger__play { transition: none; }
+}
+
+/* Modal: <dialog> nativo a pantalla completa; el fondo del propio dialog es el overlay. */
+.video-modal {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  background: rgba(0, 0, 0, .8);
+  overflow-y: auto; /* al desplegar el selector de motos el contenido crece: el modal hace scroll */
+  overscroll-behavior: contain;
+}
+.video-modal[open] { display: flex; }
+.video-modal::backdrop { background: transparent; }
+.video-modal__inner { margin: auto; max-width: 100%; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.video-modal__close {
+  align-self: flex-end;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  cursor: pointer;
+}
+.video-modal__close:hover { background: rgba(255, 255, 255, .26); }
+.video-modal__close:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.video-modal__frame {
+  aspect-ratio: 9 / 16;
+  width: auto;
+  height: min(85vh, 760px);
+  height: min(85vh, 760px, calc(100dvh - 150px)); /* deja espacio a la X y al CTA */
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+}
+.video-modal__frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.video-modal__cta { min-width: 220px; justify-content: center; }
+/* "Aplica ahora" → ApplyCreditCta: el panel de selección va en tarjeta clara sobre el overlay. */
+/* contain: inline-size → el carrusel de miniaturas no ensancha el modal; el panel toma el ancho del video. */
+.video-modal__apply { width: 100%; contain: inline-size; display: flex; flex-direction: column; align-items: center; color: var(--text); }
+.video-modal__apply .apply-cta__panel {
+  width: 100%;
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: 16px;
+}
+.video-modal__apply .finva-modal-fallback { margin-top: 4px; }
+@media (max-width: 640px) {
+  /* Móvil: casi toda la pantalla, 16 px de margen; el alto manda si la pantalla es corta. */
+  .video-modal__frame {
+    height: auto;
+    width: calc(100vw - 32px);
+    width: min(calc(100vw - 32px), calc((100dvh - 150px) * 9 / 16));
+  }
+  .video-modal__cta { width: 100%; }
+}

@@ -6,7 +6,7 @@ import { FaqAccordion, type FaqItem } from '@/components/FaqAccordion';
 import { buildAsiFuncionaJsonLd } from '@/lib/asi-funciona-jsonld';
 import { ApplyCreditCta } from '@/components/ApplyCreditCta';
 import { getMotorcycles } from '@/lib/catalog';
-import { cashPrice } from '@/lib/catalog-format';
+import { toApplyCreditMoto } from '@/lib/catalog-format';
 
 export const revalidate = 120;
 
@@ -204,18 +204,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AsiFuncionaPage() {
-  const motos = (await getMotorcycles()).map((m) => ({
-    id: m.id,
-    brand: m.brand,
-    model: m.model,
-    year: m.year,
-    slug: m.slug,
-    price: cashPrice(m),
-    suggestedDownPayment: m.suggestedDownPayment,
-    finvaMotorcycleId: m.finvaMotorcycleId ?? null,
-    purchaseUrl: m.purchaseUrl ?? null,
-    imageUrl: m.imageUrl ?? null,
-  }));
+  const motos = (await getMotorcycles()).map(toApplyCreditMoto);
   // Mismo CTA "Aplica tu crédito ahora" al final de cada uno de los 4 pasos
   // (cada panel monta su propia instancia, con estado independiente).
   const applyCta = (

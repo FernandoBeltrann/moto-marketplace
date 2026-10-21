@@ -25,7 +25,22 @@ export type ApplyCreditMoto = {
  * página no tiene una moto elegida, así que el botón despliega dos selectores (marca y luego modelo, A-Z) y,
  * al elegir marca y moto, muestra el mismo modal de Finva que usa "Cómprala ya".
  */
-export function ApplyCreditCta({ motos }: { motos: ApplyCreditMoto[] }) {
+export function ApplyCreditCta({
+  motos,
+  label = 'Aplica tu crédito ahora',
+  buttonClassName = 'btn green',
+  onToggle,
+  onBeforeCheckoutOpen,
+}: {
+  motos: ApplyCreditMoto[];
+  /** Texto del botón que despliega los selectores. */
+  label?: string;
+  buttonClassName?: string;
+  /** Se llama al desplegar (true) o plegar (false) el panel de selección. */
+  onToggle?: (open: boolean) => void;
+  /** Se llama justo antes de abrir el modal de Finva. */
+  onBeforeCheckoutOpen?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [brand, setBrand] = useState('');
   const [motoId, setMotoId] = useState('');
@@ -61,12 +76,16 @@ export function ApplyCreditCta({ motos }: { motos: ApplyCreditMoto[] }) {
     <>
       <button
         type="button"
-        className="btn green"
+        className={buttonClassName}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          onToggle?.(next);
+        }}
       >
-        Aplica tu crédito ahora
+        {label}
       </button>
 
       <div id={panelId} className="apply-cta__panel" hidden={!open}>
@@ -174,6 +193,7 @@ export function ApplyCreditCta({ motos }: { motos: ApplyCreditMoto[] }) {
               finvaMotorcycleId: moto.finvaMotorcycleId,
             }}
             purchaseUrl={moto.purchaseUrl || site.defaultPurchaseUrl}
+            onBeforeOpen={onBeforeCheckoutOpen}
           >
             Continuar con mi solicitud
           </FinvaCheckoutModal>

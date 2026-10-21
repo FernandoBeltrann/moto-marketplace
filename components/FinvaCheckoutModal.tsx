@@ -29,11 +29,17 @@ export function FinvaCheckoutModal({
   purchaseUrl,
   className = 'btn green full',
   children = 'Consíguela ya',
+  onBeforeOpen,
 }: FinvaBrickCommonProps & {
   /** Clases del botón disparador. */
   className?: string;
   /** Etiqueta del botón disparador. */
   children?: ReactNode;
+  /**
+   * Se llama justo antes de abrir el overlay de Finva, ya con el SDK listo (mismo tick).
+   * Sirve para cerrar otro modal que lo taparía, sin que le robe el foco a Finva.
+   */
+  onBeforeOpen?: () => void;
 }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const containerId = safeContainerId('finva-modal-mount', useId());
@@ -52,6 +58,7 @@ export function FinvaCheckoutModal({
   function open() {
     // Si ya está creado, solo lo abrimos (reutilización).
     if (controllerRef.current) {
+      onBeforeOpen?.();
       controllerRef.current.open();
       return;
     }
@@ -69,6 +76,7 @@ export function FinvaCheckoutModal({
           callbacks: buildFinvaCallbacks(motorcycle, price),
         });
         controllerRef.current = controller;
+        onBeforeOpen?.();
         controller.open();
         setStatus('idle');
       })

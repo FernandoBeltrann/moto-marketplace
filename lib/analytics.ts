@@ -30,7 +30,9 @@ export type AnalyticsEvent =
   | 'click_purchase_agent'
   | 'submit_lead'
   | 'search_catalog'
-  | 'filter_catalog';
+  | 'filter_catalog'
+  | 'video_open'
+  | 'video_cta_click';
 
 declare global {
   interface Window {
@@ -101,6 +103,28 @@ export function trackWhatsappClicked(params: {
     source_page: params.sourcePage,
     city: params.city,
   });
+}
+
+/**
+ * Video "Cómo funciona" del hero del home.
+ * - dataLayer (`video_open`) → GA4 vía GTM (igual que los demás eventos nuevos).
+ * - track() → PostHog / Meta / gtag, para tenerlo también en los funnels de PostHog.
+ */
+export function trackVideoOpen(params: { videoId: string; location: string }) {
+  const payload = { video_id: params.videoId, video_location: params.location };
+  pushEvent('video_open', payload);
+  track('video_open', payload);
+}
+
+/** Clic en "Aplica ahora" dentro del modal del video. */
+export function trackVideoCtaClick(params: { videoId: string; location: string; destination: string }) {
+  const payload = {
+    video_id: params.videoId,
+    video_location: params.location,
+    cta_destination: params.destination,
+  };
+  pushEvent('video_cta_click', payload);
+  track('video_cta_click', payload);
 }
 
 /** PostHog / Meta / gtag — sin cambios respecto al setup anterior. */
