@@ -1324,6 +1324,13 @@ ol.kpi-strip { list-style: none; padding: 0; margin-bottom: 0; }
 }
 .video-modal__frame iframe { display: block; width: 100%; height: 100%; border: 0; }
 .video-modal__cta { min-width: 220px; justify-content: center; }
+/* Videos horizontales (16:9): el ancho manda; tope de alto para que quepan la X y el CTA. */
+.video-modal--horizontal .video-modal__frame {
+  aspect-ratio: 16 / 9;
+  height: auto;
+  width: min(calc(100vw - 32px), 960px);
+  width: min(calc(100vw - 32px), 960px, calc((100dvh - 150px) * 16 / 9));
+}
 /* "Aplica ahora" → ApplyCreditCta: el panel de selección va en tarjeta clara sobre el overlay. */
 /* contain: inline-size → el carrusel de miniaturas no ensancha el modal; el panel toma el ancho del video. */
 .video-modal__apply { width: 100%; contain: inline-size; display: flex; flex-direction: column; align-items: center; color: var(--text); }

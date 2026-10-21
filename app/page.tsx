@@ -23,8 +23,8 @@ const HERO_DESCRIPTION =
 const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
 const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
 const FEATURED_CTA = 'Ver catálogo';
-/** Short "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI). */
-const HERO_VIDEO_ID = 'RlHX_EdgMkI';
+/** Video del hero: "¿Qué moto comprar a crédito? Calcula tu mensualidad estimada" (https://youtu.be/wsL1FlyJNMs, 16:9). */
+const HERO_VIDEO_ID = 'wsL1FlyJNMs';
 /** Los 4 pasos bajo la foto del hero. */
 const HERO_STEPS = ['Selecciona tu moto', 'Aplica', 'Aprueba', 'Estrena'];
 
@@ -46,7 +46,7 @@ export default async function HomePage() {
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
-            <HeroVideoCard slides={heroSlides} videoId={HERO_VIDEO_ID} applyMotos={applyMotos} />
+            <HeroVideoCard slides={heroSlides} videoId={HERO_VIDEO_ID} orientation="horizontal" applyMotos={applyMotos} />
             <ol className="kpi-strip" aria-label="Cómo comprar tu moto en 4 pasos">
               {HERO_STEPS.map((step, i) => (
                 <li className="kpi" key={step}><strong>{i + 1}</strong><span className="small muted">{step}</span></li>

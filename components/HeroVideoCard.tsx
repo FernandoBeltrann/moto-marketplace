@@ -13,8 +13,10 @@ const FOCUSABLE = 'button, a[href], iframe, select, input, textarea, [tabindex]:
 type Props = {
   /** Fotos del carrusel del hero (se siguen mostrando igual que antes; son el LCP). */
   slides: Motorcycle[];
-  /** ID del video de YouTube (Short), p. ej. "RlHX_EdgMkI". */
+  /** ID del video de YouTube, p. ej. "wsL1FlyJNMs". */
   videoId: string;
+  /** Formato del video: 'vertical' (Short, 9:16) u 'horizontal' (16:9). Default: vertical. */
+  orientation?: 'vertical' | 'horizontal';
   /** Catálogo para el CTA "Aplica ahora" del modal (mismo flujo que la página Así funciona). */
   applyMotos: ApplyCreditMoto[];
   /** Título accesible del iframe. */
@@ -58,6 +60,7 @@ function PlayIcon() {
 export function HeroVideoCard({
   slides,
   videoId,
+  orientation = 'vertical',
   applyMotos,
   videoTitle = 'Cómo funciona MotoClick',
   triggerLabel = 'Ver video: cómo funciona MotoClick',
@@ -180,7 +183,7 @@ export function HeroVideoCard({
 
       <dialog
         ref={dialogRef}
-        className="video-modal"
+        className={orientation === 'horizontal' ? 'video-modal video-modal--horizontal' : 'video-modal'}
         role="dialog"
         aria-modal="true"
         aria-label={videoTitle}
