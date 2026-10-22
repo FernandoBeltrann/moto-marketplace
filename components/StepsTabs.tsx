@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 type StepId = 'selecciona' | 'aplica' | 'aprueba' | 'estrena';
 
@@ -31,6 +31,7 @@ const STEPS: StepMeta[] = [
  */
 export function StepsTabs({ panels }: { panels: Record<StepId, ReactNode> }) {
   const [active, setActive] = useState<StepId>('selecciona');
+  const rootRef = useRef<HTMLDivElement>(null);
 
   // Soporte para enlaces directos tipo .../asi-funciona-...#aprueba: al
   // cargar (o si el hash cambia estando ya en la página) activamos el panel
@@ -42,9 +43,12 @@ export function StepsTabs({ panels }: { panels: Record<StepId, ReactNode> }) {
       const hash = window.location.hash.slice(1);
       if (!STEP_IDS.includes(hash as StepId)) return;
       setActive(hash as StepId);
-      requestAnimationFrame(() => {
-        document.getElementById(`panel-${hash}`)?.scrollIntoView({ block: 'start' });
-      });
+      // Scroll a las pills (no al panel): así se ve qué paso quedó activo y el título no
+      // queda debajo del nav sticky (ver `scroll-margin-top` de .steps-tabs en globals.css).
+      // Doble rAF: espera a que el panel activo ya tenga layout antes de medir.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start' })),
+      );
     };
     syncFromHash();
     window.addEventListener('hashchange', syncFromHash);
@@ -52,7 +56,7 @@ export function StepsTabs({ panels }: { panels: Record<StepId, ReactNode> }) {
   }, []);
 
   return (
-    <div className="steps-tabs">
+    <div className="steps-tabs" ref={rootRef}>
       <div className="steps-tabs__pills" role="tablist" aria-label="Pasos para comprar tu moto a crédito">
         {STEPS.map((step) => {
           const isActive = step.id === active;

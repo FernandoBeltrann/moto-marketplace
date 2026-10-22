@@ -32,7 +32,8 @@ export type AnalyticsEvent =
   | 'search_catalog'
   | 'filter_catalog'
   | 'video_open'
-  | 'video_cta_click';
+  | 'video_cta_click'
+  | 'home_step_click';
 
 declare global {
   interface Window {
@@ -125,6 +126,13 @@ export function trackVideoCtaClick(params: { videoId: string; location: string; 
   };
   pushEvent('video_cta_click', payload);
   track('video_cta_click', payload);
+}
+
+/** Clic en uno de los 4 pasos del hero del home (lleva a ese paso en "Así funciona"). */
+export function trackHomeStepClick(params: { step: string; position: number }) {
+  const payload = { step: params.step, step_position: params.position };
+  pushEvent('home_step_click', payload);
+  track('home_step_click', payload);
 }
 
 /** PostHog / Meta / gtag — sin cambios respecto al setup anterior. */

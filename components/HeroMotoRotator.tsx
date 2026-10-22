@@ -16,7 +16,7 @@ type Props = {
   linkLabel?: string;
   /**
    * `false` = solo muestra las fotos (sin <Link>), para meter el carrusel dentro de
-   * otro elemento interactivo, p. ej. el <button> de HeroVideoCard. Default: true.
+   * otro elemento interactivo, p. ej. el <button> de VideoModalCard. Default: true.
    */
   interactive?: boolean;
 };

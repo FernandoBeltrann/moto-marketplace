@@ -1,18 +1,29 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { ApplyCreditCta, type ApplyCreditMoto } from '@/components/ApplyCreditCta';
-import { HeroMotoRotator } from '@/components/HeroMotoRotator';
 import { trackVideoCtaClick, trackVideoOpen } from '@/lib/analytics';
-import type { Motorcycle } from '@/types/motorcycle';
 
 const YT_ORIGIN = 'https://www.youtube-nocookie.com';
-const VIDEO_LOCATION = 'home_hero';
 const FOCUSABLE = 'button, a[href], iframe, select, input, textarea, [tabindex]:not([tabindex="-1"])';
 
 type Props = {
-  /** Fotos del carrusel del hero (se siguen mostrando igual que antes; son el LCP). */
-  slides: Motorcycle[];
+  /**
+   * Lo que se ve en la tarjeta antes del clic (foto/miniatura). Va dentro del <button>,
+   * así que no debe traer enlaces ni otros controles. En el home es el carrusel de motos
+   * (es el LCP: no se reemplaza ni se retrasa).
+   */
+  thumbnail: ReactNode;
+  /** Dónde está el video, para analytics (`video_location`): p. ej. "home_hero". */
+  location: string;
   /** ID del video de YouTube, p. ej. "wsL1FlyJNMs". */
   videoId: string;
   /** Formato del video: 'vertical' (Short, 9:16) u 'horizontal' (16:9). Default: vertical. */
@@ -41,15 +52,22 @@ function preconnectYouTube() {
 
 function PlayIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden focusable="false">
-      <path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14Z" fill="currentColor" />
+    // Triángulo con su centroide en (32, 32) = centro del círculo: (24.5·2 + 47) / 3 = 32.
+    <svg viewBox="0 0 64 64" aria-hidden focusable="false">
+      <path
+        d="M24.5 19 L47 32 L24.5 45 Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 /**
- * Tarjeta del hero del home: la foto de la moto (carrusel) es un botón con un play
- * propio en verde de marca. Al hacer clic se abre un <dialog> nativo y SOLO entonces
+ * Tarjeta con video: la miniatura (`thumbnail`) es un botón con un play propio en
+ * verde de marca. Se usa en el hero del home y en el paso 1 de "Así funciona". Al hacer clic se abre un <dialog> nativo y SOLO entonces
  * se crea el iframe de YouTube. Al cerrar, el iframe se desmonta (se destruye), así
  * el audio se detiene y no queda nada cargado.
  *
@@ -57,8 +75,9 @@ function PlayIcon() {
  * del contenido del modal se queda montado aunque el <dialog> esté cerrado: así el
  * brick de Finva sigue vivo cuando cerramos el video justo antes de abrir su overlay.
  */
-export function HeroVideoCard({
-  slides,
+export function VideoModalCard({
+  thumbnail,
+  location,
   videoId,
   orientation = 'vertical',
   applyMotos,
@@ -78,7 +97,7 @@ export function HeroVideoCard({
   const openModal = () => {
     skipFocusRestoreRef.current = false;
     setOpen(true);
-    trackVideoOpen({ videoId, location: VIDEO_LOCATION });
+    trackVideoOpen({ videoId, location });
   };
 
   /** Cierra el <dialog>; el evento `close` se encarga de desmontar el iframe y devolver el foco. */
@@ -141,7 +160,7 @@ export function HeroVideoCard({
   /** "Aplica ahora": mide el clic y lleva el panel de selección a la vista (el modal hace scroll). */
   const handleApplyToggle = (panelOpen: boolean) => {
     if (!panelOpen) return;
-    trackVideoCtaClick({ videoId, location: VIDEO_LOCATION, destination: 'apply_credit_panel' });
+    trackVideoCtaClick({ videoId, location, destination: 'apply_credit_panel' });
     requestAnimationFrame(() => {
       applyRef.current
         ?.querySelector('.apply-cta__panel')
@@ -172,7 +191,7 @@ export function HeroVideoCard({
         onPointerOver={preconnectYouTube}
         onFocus={preconnectYouTube}
       >
-        <HeroMotoRotator slides={slides} interactive={false} />
+        {thumbnail}
         <span className="hero-video-trigger__overlay" aria-hidden>
           <span className="hero-video-trigger__play">
             <PlayIcon />

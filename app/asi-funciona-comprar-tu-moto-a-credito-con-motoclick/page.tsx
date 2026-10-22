@@ -5,6 +5,7 @@ import { StepsTabs } from '@/components/StepsTabs';
 import { FaqAccordion, type FaqItem } from '@/components/FaqAccordion';
 import { buildAsiFuncionaJsonLd } from '@/lib/asi-funciona-jsonld';
 import { ApplyCreditCta } from '@/components/ApplyCreditCta';
+import { VideoModalCard } from '@/components/VideoModalCard';
 import { getMotorcycles } from '@/lib/catalog';
 import { toApplyCreditMoto } from '@/lib/catalog-format';
 
@@ -192,6 +193,10 @@ const APRUEBA_FLOW =
   'Flujo completo: Aprobación → Aceptación de oferta → Pago de enganche (si aplica) → Firma de contrato → Preparación de documentación → Entrega / Estrena.';
 const ESTRENA_FLOW = 'Canal de acompañamiento: WhatsApp, con el agente FINVA presente desde el primer paso hasta la entrega.';
 
+/** Video del paso 1 (Selecciona): https://youtu.be/wsL1FlyJNMs (horizontal 16:9). */
+const SELECCIONA_VIDEO_ID = 'wsL1FlyJNMs';
+const SELECCIONA_VIDEO_TITLE = '¿Qué moto comprar a crédito? Calcula tu mensualidad estimada';
+
 const PAGE_DESCRIPTION =
   'Los 4 pasos para comprar tu moto a crédito con MotoClick: selecciona, aplica, aprueba y estrena. Resuelve tus dudas para elegir la moto correcta para ti.';
 
@@ -248,6 +253,37 @@ export default async function AsiFuncionaPage() {
             selecciona: (
               <>
                 <h2>Selecciona tu moto</h2>
+                <div className="step-video">
+                  <VideoModalCard
+                    thumbnail={
+                      // Miniatura estática de YouTube (solo una imagen; el iframe se crea al hacer clic).
+                      // maxresdefault = 1280×720 sin franjas negras (hqdefault era 480×360 y se veía borrosa).
+                      <span className="video-thumb">
+                        <picture>
+                          <source
+                            type="image/webp"
+                            srcSet={`https://i.ytimg.com/vi_webp/${SELECCIONA_VIDEO_ID}/maxresdefault.webp`}
+                          />
+                          <img
+                            src={`https://i.ytimg.com/vi/${SELECCIONA_VIDEO_ID}/maxresdefault.jpg`}
+                            alt=""
+                            width={1280}
+                            height={720}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </picture>
+                      </span>
+                    }
+                    location="asi_funciona_selecciona"
+                    videoId={SELECCIONA_VIDEO_ID}
+                    orientation="horizontal"
+                    videoTitle={SELECCIONA_VIDEO_TITLE}
+                    triggerLabel={`Ver video: ${SELECCIONA_VIDEO_TITLE}`}
+                    badgeLabel="Ver video: ¿qué moto comprar?"
+                    applyMotos={motos}
+                  />
+                </div>
                 <FaqAccordion items={SELECCIONA_FAQS} />
                 {applyCta}
               </>

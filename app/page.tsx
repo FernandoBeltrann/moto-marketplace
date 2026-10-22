@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
-import { HeroVideoCard } from '@/components/HeroVideoCard';
+import { HeroMotoRotator } from '@/components/HeroMotoRotator';
+import { HomeStepsLinks } from '@/components/HomeStepsLinks';
+import { VideoModalCard } from '@/components/VideoModalCard';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getBrands, getMotorcycles } from '@/lib/catalog';
 import { toApplyCreditMoto } from '@/lib/catalog-format';
@@ -23,10 +25,8 @@ const HERO_DESCRIPTION =
 const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
 const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
 const FEATURED_CTA = 'Ver catálogo';
-/** Video del hero: "¿Qué moto comprar a crédito? Calcula tu mensualidad estimada" (https://youtu.be/wsL1FlyJNMs, 16:9). */
-const HERO_VIDEO_ID = 'wsL1FlyJNMs';
-/** Los 4 pasos bajo la foto del hero. */
-const HERO_STEPS = ['Selecciona tu moto', 'Aplica', 'Aprueba', 'Estrena'];
+/** Short del hero "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI, vertical 9:16). */
+const HERO_VIDEO_ID = 'RlHX_EdgMkI';
 
 export default async function HomePage() {
   const [all, brands] = await Promise.all([getMotorcycles(), getBrands()]);
@@ -46,12 +46,13 @@ export default async function HomePage() {
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
-            <HeroVideoCard slides={heroSlides} videoId={HERO_VIDEO_ID} orientation="horizontal" applyMotos={applyMotos} />
-            <ol className="kpi-strip" aria-label="Cómo comprar tu moto en 4 pasos">
-              {HERO_STEPS.map((step, i) => (
-                <li className="kpi" key={step}><strong>{i + 1}</strong><span className="small muted">{step}</span></li>
-              ))}
-            </ol>
+            <VideoModalCard
+              thumbnail={<HeroMotoRotator slides={heroSlides} interactive={false} />}
+              location="home_hero"
+              videoId={HERO_VIDEO_ID}
+              applyMotos={applyMotos}
+            />
+            <HomeStepsLinks />
           </div>
         </div>
       </section>,

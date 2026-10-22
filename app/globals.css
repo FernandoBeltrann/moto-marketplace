@@ -1096,6 +1096,12 @@ p { color: var(--muted); line-height: 1.6; }
 .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 26px; }
 .kpi { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
 .kpi strong { font-size: 26px; display: block; letter-spacing: -.05em; }
+/* Home: cada paso lleva a su pestaña en "Así funciona". */
+.kpi--link { padding: 0; transition: border-color .15s ease, transform .15s ease; }
+.kpi__link { display: block; height: 100%; padding: 18px; border-radius: inherit; color: inherit; }
+.kpi--link:hover { border-color: var(--green); transform: translateY(-2px); }
+.kpi__link:focus-visible { outline: 3px solid var(--green-dark); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .kpi--link { transition: none; } .kpi--link:hover { transform: none; } }
 @media (max-width: 860px) {
   .hero-grid, .product-grid, .two-col { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
@@ -1152,6 +1158,8 @@ p { color: var(--muted); line-height: 1.6; }
 }
 /* Los 4 paneles siempre están en el HTML (SSR completo para SEO); solo uno
    se muestra visualmente según el paso activo (ver StepsTabs.tsx). */
+/* Enlaces directos (#aprueba, desde los pasos del home): deja libre el nav sticky (70 px). */
+.steps-tabs { scroll-margin-top: 86px; }
 .steps-tabs__panel { display: none; margin-top: 12px; }
 .steps-tabs__panel--active { display: block; }
 
@@ -1225,7 +1233,7 @@ p { color: var(--muted); line-height: 1.6; }
 .apply-cta__arrow { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--green-dark); font-size: 20px; line-height: 1; cursor: pointer; }
 .flow-note { margin: 16px 0 0; padding: 16px 18px; background: var(--soft); border-radius: 12px; font-size: 14.5px; color: var(--green-dark); }
 
-/* ── Hero del home: foto con play → modal con el Short de YouTube (components/HeroVideoCard.tsx) ── */
+/* ── Hero del home: foto con play → modal con el Short de YouTube (components/VideoModalCard.tsx; también en el paso 1 de Así funciona) ── */
 ol.kpi-strip { list-style: none; padding: 0; margin-bottom: 0; }
 .hero-video-trigger {
   position: relative;
@@ -1243,43 +1251,82 @@ ol.kpi-strip { list-style: none; padding: 0; margin-bottom: 0; }
 .hero-video-trigger__overlay {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   border-radius: 24px;
   pointer-events: none;
 }
+/* Play: círculo verde de marca con halo translúcido. El triángulo ya viene centrado en el SVG
+   (centroide en el centro del círculo), así que no hace falta corregir con padding. */
 .hero-video-trigger__play {
-  display: grid;
-  place-items: center;
-  width: 68px;
-  height: 68px;
-  padding-left: 4px; /* centra ópticamente el triángulo */
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: var(--green);
   color: #fff;
-  border: 3px solid #fff;
-  box-shadow: 0 10px 30px rgba(13, 27, 18, .28);
-  transition: transform .18s ease, background-color .18s ease;
+  box-shadow:
+    0 0 0 6px rgba(255, 255, 255, .55),
+    0 12px 32px rgba(13, 27, 18, .32);
+  transition: transform .2s ease, background-color .2s ease, box-shadow .2s ease;
 }
+.hero-video-trigger__play svg { display: block; width: 100%; height: 100%; }
+/* Pulso suave del halo para invitar al clic (se apaga con reduced-motion). */
+.hero-video-trigger__play::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .7);
+  animation: video-play-pulse 2.4s ease-out infinite;
+}
+@keyframes video-play-pulse {
+  0% { transform: scale(1); opacity: .8; }
+  70%, 100% { transform: scale(1.35); opacity: 0; }
+}
+/* Etiqueta: píldora oscura translúcida abajo a la izquierda, con un punto verde. */
 .hero-video-trigger__badge {
   position: absolute;
+  left: 14px;
   bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(13, 27, 18, .82);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 28px);
+  padding: 8px 14px 8px 12px;
+  border-radius: 999px;
+  background: rgba(13, 27, 18, .72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   color: #fff;
   font-size: 13px;
-  font-weight: 800;
-  padding: 7px 12px;
-  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: -.01em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-video-trigger__badge::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6fdc84;
+  box-shadow: 0 0 0 3px rgba(111, 220, 132, .25);
 }
 .hero-video-trigger:hover .hero-video-trigger__play,
-.hero-video-trigger:focus-visible .hero-video-trigger__play { transform: scale(1.1); background: var(--green-dark); }
+.hero-video-trigger:focus-visible .hero-video-trigger__play {
+  transform: scale(1.08);
+  background: var(--green-dark);
+  box-shadow:
+    0 0 0 8px rgba(255, 255, 255, .7),
+    0 16px 40px rgba(13, 27, 18, .38);
+}
 @media (prefers-reduced-motion: reduce) {
   .hero-video-trigger__play { transition: none; }
+  .hero-video-trigger__play::after { animation: none; opacity: 0; }
 }
 
 /* Modal: <dialog> nativo a pantalla completa; el fondo del propio dialog es el overlay. */
@@ -1324,6 +1371,12 @@ ol.kpi-strip { list-style: none; padding: 0; margin-bottom: 0; }
 }
 .video-modal__frame iframe { display: block; width: 100%; height: 100%; border: 0; }
 .video-modal__cta { min-width: 220px; justify-content: center; }
+/* Así funciona, paso 1: tarjeta 16:9 con la miniatura de YouTube + el mismo play del home. */
+.step-video { margin: 4px 0 20px; }
+.video-thumb { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 24px; overflow: hidden; background: #0d1b12; }
+.video-thumb picture { display: contents; }
+.video-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.video-thumb::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, .38), transparent 45%); }
 /* Videos horizontales (16:9): el ancho manda; tope de alto para que quepan la X y el CTA. */
 .video-modal--horizontal .video-modal__frame {
   aspect-ratio: 16 / 9;
