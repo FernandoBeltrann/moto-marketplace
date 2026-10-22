@@ -7,6 +7,7 @@ import { GoogleTag } from '@/components/GoogleTag';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
 import { PostHogInit } from '@/components/PostHogInit';
+import { FinvaSdkPreload } from '@/components/FinvaSdkPreload';
 import { site } from '@/lib/site';
 import { buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/lib/organization-jsonld';
 
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GoogleTagManager />
         <GoogleTag />
         <MetaPixel />
+        <FinvaSdkPreload />
         <nav className="nav">
           <div className="container nav-inner">
             <Link className="logo" href="/">{site.logoText}</Link>
