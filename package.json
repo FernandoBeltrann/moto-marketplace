@@ -30,5 +30,8 @@
     "eslint": "latest",
     "eslint-config-next": "^16.4.3",
     "typescript": "latest"
+  },
+  "engines": {
+    "node": "24.22.1"
   }
 }

@@ -53,3 +53,10 @@ moto-marketplace no tiene Dockerfile en el repo (el runtime lo define la platafo
 
 - [ ] Confirmar que la plataforma de deploy corre Node 24.22.1+ (o 22.23.4+). En Railway: variable `NIXPACKS_NODE_VERSION` / engines; en Vercel: Project Settings → Node.js Version
 - [x] En tu Mac: Node actualizado a v24.22.1 (2026-10-27)
+
+## Seguimiento 2026-10-27 (después del deploy)
+
+- [x] PR #6 mergeado a `main`; Railway desplegó producción y staging con Next 16.4.3 (deploy `e2ca6a29`, SUCCESS)
+- [x] Hallazgo: Railpack seguía construyendo con **Node 22.23.3** ("previous installed version (22)"), anterior al parche del 21-oct (22.23.4 / 24.22.1)
+- [x] Fix en rama `security/node-24-runtime`: `"engines": {"node": "24.22.1"}` en `package.json` (Railpack lo respeta antes que su versión en caché)
+- [ ] Merge y verificar en el build log de Railway: `node │ 24.22.1 │ package.json > engines > node`
