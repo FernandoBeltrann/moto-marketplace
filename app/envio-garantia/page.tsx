@@ -16,7 +16,7 @@ export default function EnvioGarantiaPage() {
         <p className="small muted" style={{ marginBottom: 12 }}>
           <Link href="/">Inicio</Link>
           {' · '}
-          <Link href="/motos">Motos</Link>
+          <Link href="/motos-a-credito">Motos a crédito</Link>
         </p>
         <h1 style={{ marginTop: 0 }}>Envío y garantía</h1>
         <p>

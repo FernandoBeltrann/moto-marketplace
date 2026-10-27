@@ -6,6 +6,7 @@ import { FaqAccordion, type FaqItem } from '@/components/FaqAccordion';
 import { buildAsiFuncionaJsonLd } from '@/lib/asi-funciona-jsonld';
 import { ApplyCreditCta } from '@/components/ApplyCreditCta';
 import { VideoModalCard } from '@/components/VideoModalCard';
+import { YouTubeThumbnail } from '@/components/YouTubeThumbnail';
 import { getMotorcycles } from '@/lib/catalog';
 import { toApplyCreditMoto } from '@/lib/catalog-format';
 
@@ -238,8 +239,6 @@ export default async function AsiFuncionaPage() {
         <p className="small muted" style={{ marginBottom: 12 }}>
           <Link href="/">Inicio</Link>
           {' · '}
-          <Link href="/motos">Motos</Link>
-          {' · '}
           <Link href="/motos-a-credito">Motos a crédito</Link>
         </p>
         <h1 style={{ marginTop: 0 }}>Así funciona comprar tu moto a crédito con Motoclick</h1>
@@ -255,26 +254,7 @@ export default async function AsiFuncionaPage() {
                 <h2>Selecciona tu moto</h2>
                 <div className="step-video">
                   <VideoModalCard
-                    thumbnail={
-                      // Miniatura estática de YouTube (solo una imagen; el iframe se crea al hacer clic).
-                      // maxresdefault = 1280×720 sin franjas negras (hqdefault era 480×360 y se veía borrosa).
-                      <span className="video-thumb">
-                        <picture>
-                          <source
-                            type="image/webp"
-                            srcSet={`https://i.ytimg.com/vi_webp/${SELECCIONA_VIDEO_ID}/maxresdefault.webp`}
-                          />
-                          <img
-                            src={`https://i.ytimg.com/vi/${SELECCIONA_VIDEO_ID}/maxresdefault.jpg`}
-                            alt=""
-                            width={1280}
-                            height={720}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        </picture>
-                      </span>
-                    }
+                    thumbnail={<YouTubeThumbnail videoId={SELECCIONA_VIDEO_ID} />}
                     location="asi_funciona_selecciona"
                     videoId={SELECCIONA_VIDEO_ID}
                     orientation="horizontal"

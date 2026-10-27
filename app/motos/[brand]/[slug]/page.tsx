@@ -72,7 +72,7 @@ export default async function ProductPage({ params }: Props) {
       />
       <div className="container product-grid">
         <div>
-          <Link href="/motos" className="small muted">
+          <Link href="/motos-a-credito" className="small muted">
             ← Volver al catálogo
           </Link>
           <div

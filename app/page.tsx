@@ -62,7 +62,7 @@ export default async function HomePage() {
         <div className="container">
           <div className="section-head">
             <div><h2>{FEATURED_HEADING}</h2><p>{FEATURED_SUBTITLE}</p></div>
-            <Link className="btn" href="/motos">{FEATURED_CTA}</Link>
+            <Link className="btn" href="/motos-a-credito">{FEATURED_CTA}</Link>
           </div>
           <div className="grid">{featured.map((moto) => <MotorcycleCard moto={moto} key={moto.id} />)}</div>
         </div>

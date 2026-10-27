@@ -16,7 +16,7 @@ export default function AvisoDePrivacidadPage() {
         <p className="small muted" style={{ marginBottom: 12 }}>
           <Link href="/">Inicio</Link>
           {' · '}
-          <Link href="/motos">Motos</Link>
+          <Link href="/motos-a-credito">Motos a crédito</Link>
           {' · '}
           <Link href="/envio-garantia">Envío y garantía</Link>
         </p>

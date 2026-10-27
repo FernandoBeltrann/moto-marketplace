@@ -18,7 +18,7 @@ export function SearchBox({ brands }: { brands: string[] }) {
     if (budget) params.set('budget', budget);
     if (useCase) params.set('category', useCase);
     const qs = params.toString();
-    router.push(qs ? `/motos?${qs}` : '/motos');
+    router.push(qs ? `/motos-a-credito?${qs}` : '/motos-a-credito');
   }
 
   return (
