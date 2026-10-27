@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import Link from 'next/link';
-import { NavComoFuncionaLink } from '@/components/NavComoFuncionaLink';
+import { MobileNavMenu } from '@/components/MobileNavMenu';
 import { GoogleTag } from '@/components/GoogleTag';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
 import { PostHogInit } from '@/components/PostHogInit';
 import { FinvaSdkPreload } from '@/components/FinvaSdkPreload';
+import { NAV_LINKS, NAV_WHATSAPP_HREF } from '@/lib/nav';
 import { site } from '@/lib/site';
 import { buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/lib/organization-jsonld';
 
@@ -70,13 +71,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="container nav-inner">
             <Link className="logo" href="/">{site.logoText}</Link>
             <div className="nav-links">
-              <Link href="/motos">Motos</Link>
-              <Link href="/motos-a-credito">Motos a crédito</Link>
-              <Link href="/blog">Blog</Link>
-              <NavComoFuncionaLink />
+              {NAV_LINKS.map((link) => (
+                <Link key={link.href} href={link.href}>{link.label}</Link>
+              ))}
               <a
                 className="btn green"
-                href={`https://wa.me/${site.whatsapp}?text=Hola%2C%20quiero%20comprar%20una%20moto`}
+                href={NAV_WHATSAPP_HREF}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={site.whatsappDisplay}
@@ -85,6 +85,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 WhatsApp
               </a>
             </div>
+            {/* Debajo de 860 px .nav-links se oculta; este botón abre los mismos enlaces. */}
+            <MobileNavMenu />
           </div>
         </nav>
         {children}

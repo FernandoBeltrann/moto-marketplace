@@ -25,7 +25,7 @@ const HERO_DESCRIPTION =
 const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
 const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
 const FEATURED_CTA = 'Ver catálogo';
-/** Short del hero "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI, vertical 9:16). */
+/** Video del hero "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI). Es horizontal 16:9, no Short. */
 const HERO_VIDEO_ID = 'RlHX_EdgMkI';
 
 export default async function HomePage() {
@@ -50,6 +50,7 @@ export default async function HomePage() {
               thumbnail={<HeroMotoRotator slides={heroSlides} interactive={false} />}
               location="home_hero"
               videoId={HERO_VIDEO_ID}
+              orientation="horizontal"
               applyMotos={applyMotos}
             />
             <HomeStepsLinks />
