@@ -198,6 +198,10 @@ const ESTRENA_FLOW = 'Canal de acompañamiento: WhatsApp, con el agente FINVA pr
 const SELECCIONA_VIDEO_ID = 'wsL1FlyJNMs';
 const SELECCIONA_VIDEO_TITLE = '¿Qué moto comprar a crédito? Calcula tu mensualidad estimada';
 
+/** Video del paso 4 (Estrena): https://youtu.be/addTA61Bd0s (horizontal 16:9). */
+const ESTRENA_VIDEO_ID = 'addTA61Bd0s';
+const ESTRENA_VIDEO_TITLE = '¿Cuándo te entregan tu moto a crédito? Así es el día de la entrega';
+
 const PAGE_DESCRIPTION =
   'Los 4 pasos para comprar tu moto a crédito con MotoClick: selecciona, aplica, aprueba y estrena. Resuelve tus dudas para elegir la moto correcta para ti.';
 
@@ -286,6 +290,18 @@ export default async function AsiFuncionaPage() {
             estrena: (
               <>
                 <h2>Estrena tu moto</h2>
+                <div className="step-video">
+                  <VideoModalCard
+                    thumbnail={<YouTubeThumbnail videoId={ESTRENA_VIDEO_ID} />}
+                    location="asi_funciona_estrena"
+                    videoId={ESTRENA_VIDEO_ID}
+                    orientation="horizontal"
+                    videoTitle={ESTRENA_VIDEO_TITLE}
+                    triggerLabel={`Ver video: ${ESTRENA_VIDEO_TITLE}`}
+                    badgeLabel="Ver video: así es la entrega"
+                    applyMotos={motos}
+                  />
+                </div>
                 <FaqAccordion items={ESTRENA_FAQS} />
                 <p className="flow-note">{ESTRENA_FLOW}</p>
                 {applyCta}

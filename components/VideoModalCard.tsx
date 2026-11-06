@@ -67,7 +67,7 @@ function PlayIcon() {
 
 /**
  * Tarjeta con video: la miniatura (`thumbnail`) es un botón con un play propio en
- * verde de marca. Se usa en el hero del home y en el paso 1 de "Así funciona". Al hacer clic se abre un <dialog> nativo y SOLO entonces
+ * verde de marca. Se usa en el hero del home y en los pasos 1 y 4 de "Así funciona". Al hacer clic se abre un <dialog> nativo y SOLO entonces
  * se crea el iframe de YouTube. Al cerrar, el iframe se desmonta (se destruye), así
  * el audio se detiene y no queda nada cargado.
  *
