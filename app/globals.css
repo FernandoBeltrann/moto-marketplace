@@ -1453,3 +1453,9 @@ ol.kpi-strip { list-style: none; padding: 0; margin-bottom: 0; }
   }
   .video-modal__cta { width: 100%; }
 }
+
+/* Galería de la ficha de producto (components/MotorcycleGallery.tsx). */
+.moto-gallery__thumbs { display: flex; gap: 10px; margin-top: 12px; overflow-x: auto; padding-bottom: 4px; }
+.moto-gallery__thumb { position: relative; flex: 0 0 88px; height: 66px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); padding: 4px; cursor: pointer; overflow: hidden; }
+.moto-gallery__thumb.is-active { border-color: var(--text, #152217); }
+.moto-gallery__thumb:focus-visible { outline: 2px solid var(--text, #152217); outline-offset: 2px; }

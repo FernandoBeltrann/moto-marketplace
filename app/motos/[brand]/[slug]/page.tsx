@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MotorcycleViewTracker } from "@/components/MotorcycleViewTracker";
 import { FinvaCheckout } from "@/components/FinvaCheckout";
 import { PrecioContado } from "@/components/PrecioContado";
 import { MotorcycleReviews } from "@/components/MotorcycleReviews";
+import { MotorcycleGallery } from "@/components/MotorcycleGallery";
 import {
   brandPath,
   cashPrice,
@@ -61,7 +61,10 @@ export default async function ProductPage({ params }: Props) {
   const reviews = await getMotorcycleReviews(moto.id);
   const jsonLd = buildProductJsonLd(moto, { reviews });
 
-  const hasPhoto = Boolean(moto.imageUrl);
+  // Portada primero y luego `gallery_urls`, sin vacíos ni repetidos.
+  const galleryImages = [moto.imageUrl, ...(moto.galleryUrls ?? [])]
+    .map((u) => (u ?? "").trim())
+    .filter((u, i, arr) => u !== "" && arr.indexOf(u) === i);
 
   return (
     <main className="product-hero">
@@ -75,26 +78,10 @@ export default async function ProductPage({ params }: Props) {
           <Link href="/motos-a-credito" className="small muted">
             ← Volver al catálogo
           </Link>
-          <div
-            className={
-              "bike-visual" +
-              (hasPhoto ? " bike-visual--photo bike-visual--photo-hero" : "")
-            }
-            style={{ borderRadius: 32, height: 430, marginTop: 18 }}
-          >
-            {hasPhoto && moto.imageUrl ? (
-              <Image
-                src={moto.imageUrl}
-                alt={`${moto.brand} ${moto.model} ${moto.year}`}
-                fill
-                className="bike-visual__img"
-                sizes="(max-width: 900px) 100vw, 560px"
-                priority
-              />
-            ) : (
-              <div className="bike-line" />
-            )}
-          </div>
+          <MotorcycleGallery
+            images={galleryImages}
+            alt={`${moto.brand} ${moto.model} ${moto.year}`}
+          />
           <section className="section" style={{ paddingTop: 26 }}>
             <h2>¿Para quién es buena?</h2>
             <div className="tags">
