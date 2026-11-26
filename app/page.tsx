@@ -24,7 +24,7 @@ const HERO_DESCRIPTION =
   'Elige tu moto nueva y te conectamos con la financiera con más probabilidad de aprobarte. Yamaha, Suzuki, KTM, Bajaj y más. Aplica en línea.';
 const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
 const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
-const FEATURED_CTA = 'Ver catálogo';
+const FEATURED_CTA = 'Ver todas las motos a crédito';
 /** Video del hero "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI). Es horizontal 16:9, no Short. */
 const HERO_VIDEO_ID = 'RlHX_EdgMkI';
 
