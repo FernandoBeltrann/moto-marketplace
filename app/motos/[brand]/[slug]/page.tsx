@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MotorcycleViewTracker } from "@/components/MotorcycleViewTracker";
 import { FinvaCheckout } from "@/components/FinvaCheckout";
 import { PrecioContado } from "@/components/PrecioContado";
 import { MotorcycleReviews } from "@/components/MotorcycleReviews";
+import { MotorcycleGallery } from "@/components/MotorcycleGallery";
 import {
   brandPath,
   cashPrice,
@@ -99,7 +99,11 @@ export default async function ProductPage({ params }: Props) {
   const reviews = await getMotorcycleReviews(moto.id);
   const jsonLd = buildProductJsonLd(moto, { reviews });
 
-  const hasPhoto = Boolean(moto.imageUrl);
+  // Portada primero y luego `gallery_urls`, sin vacíos ni repetidos.
+  const galleryImages = [moto.imageUrl, ...(moto.galleryUrls ?? [])]
+    .map((u) => (u ?? "").trim())
+    .filter((u, i, arr) => u !== "" && arr.indexOf(u) === i);
+
   const specs = Object.entries(moto.specs);
 
   return (
@@ -112,11 +116,13 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="container">
         <nav className="breadcrumb" aria-label="Ruta de navegación">
-          <Link href="/motos">Catálogo</Link>
+          <Link href="/motos-a-credito">Catálogo</Link>
           <span className="breadcrumb__sep" aria-hidden>
             /
           </span>
-          <Link href={`/motos?brand=${encodeURIComponent(moto.brand)}`}>
+          <Link
+            href={`/motos-a-credito?brand=${encodeURIComponent(moto.brand)}`}
+          >
             {moto.brand}
           </Link>
           <span className="breadcrumb__sep" aria-hidden>
@@ -130,25 +136,10 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="container product-grid">
         <div className="product-media-col">
-          <figure
-            className={
-              "bike-visual product-figure" +
-              (hasPhoto ? " bike-visual--photo bike-visual--photo-hero" : "")
-            }
-          >
-            {hasPhoto && moto.imageUrl ? (
-              <Image
-                src={moto.imageUrl}
-                alt={`${moto.brand} ${moto.model} ${moto.year} vista lateral`}
-                fill
-                className="bike-visual__img"
-                sizes="(max-width: 900px) 100vw, 560px"
-                priority
-              />
-            ) : (
-              <div className="bike-line" />
-            )}
-          </figure>
+          <MotorcycleGallery
+            images={galleryImages}
+            alt={`${moto.brand} ${moto.model} ${moto.year}`}
+          />
 
           <section className="product-section" aria-labelledby="para-quien">
             <h2 id="para-quien" className="product-section__title">

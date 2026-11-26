@@ -39,6 +39,12 @@ const nextConfig = {
     return [
       /** Rastreadores y clientes que piden solo `/favicon.ico` (Google lo usa a menudo). */
       { source: '/favicon.ico', destination: '/favicon.png', permanent: true },
+      /**
+       * "Motos" salió del menú: el catálogo completo vive en /motos-a-credito.
+       * Exacto a /motos (las fichas /motos/:brand/:slug no se tocan); el query string
+       * (?brand=…&budget=…&category=… del buscador del home) se conserva solo.
+       */
+      { source: '/motos', destination: '/motos-a-credito', permanent: true },
     ];
   },
   async rewrites() {

@@ -1,3 +1,4 @@
+import type { ApplyCreditMoto } from '@/components/ApplyCreditCta';
 import type { Motorcycle } from '@/types/motorcycle';
 
 export function formatMXN(value: number) {
@@ -41,4 +42,20 @@ export function brandPath(brand: string) {
 
 export function productPath(m: Motorcycle) {
   return `/motos/${brandPath(m.brand)}/${m.slug}`;
+}
+
+/** Datos mínimos de una moto para `ApplyCreditCta` (selector de marca/moto + modal de Finva). */
+export function toApplyCreditMoto(m: Motorcycle): ApplyCreditMoto {
+  return {
+    id: m.id,
+    brand: m.brand,
+    model: m.model,
+    year: m.year,
+    slug: m.slug,
+    price: cashPrice(m),
+    suggestedDownPayment: m.suggestedDownPayment,
+    finvaMotorcycleId: m.finvaMotorcycleId ?? null,
+    purchaseUrl: m.purchaseUrl ?? null,
+    imageUrl: m.imageUrl ?? null,
+  };
 }

@@ -1,63 +1,73 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
 import { HeroMotoRotator } from '@/components/HeroMotoRotator';
+import { HomeStepsLinks } from '@/components/HomeStepsLinks';
+import { VideoModalCard } from '@/components/VideoModalCard';
 import { MotorcycleCard } from '@/components/MotorcycleCard';
 import { getBrands, getMotorcycles } from '@/lib/catalog';
+import { toApplyCreditMoto } from '@/lib/catalog-format';
 
 export const revalidate = 120;
+
+export const metadata: Metadata = {
+  title: 'Elige tu moto. Nosotros buscamos quién te financie.',
+  description:
+    'Elige tu moto nueva y te conectamos con la financiera con más probabilidad de aprobarte. Yamaha, Suzuki, KTM, Bajaj y más. Aplica en línea.',
+};
+
+// Copy del home (migrado de la versión 40 de cms_page_versions, página "inicio").
+const HERO_EYEBROW = 'Motos nuevas + Finva evalúa tu perfil y te asigna la financiera';
+const HERO_TITLE = 'Elige tu moto. Nosotros buscamos quién te financie.';
+const HERO_DESCRIPTION =
+  'Elige tu moto nueva y te conectamos con la financiera con más probabilidad de aprobarte. Yamaha, Suzuki, KTM, Bajaj y más. Aplica en línea.';
+const FEATURED_HEADING = 'Motos nuevas a crédito más buscadas';
+const FEATURED_SUBTITLE = 'Las más elegidas para comprar a crédito, con mensualidad estimada.';
+const FEATURED_CTA = 'Ver todas las motos a crédito';
+/** Video del hero "Cómo funciona MotoClick" (https://youtu.be/RlHX_EdgMkI). Es horizontal 16:9, no Short. */
+const HERO_VIDEO_ID = 'RlHX_EdgMkI';
 
 export default async function HomePage() {
   const [all, brands] = await Promise.all([getMotorcycles(), getBrands()]);
   const featured = all.slice(0, 6);
   const heroSlides = all.filter((m) => m.imageUrl).slice(0, 8);
-  return (
-    <main>
-      <section className="hero">
+  // Catálogo para el "Aplica ahora" del modal del video (selector marca/moto → modal de Finva).
+  const applyMotos = all.map(toApplyCreditMoto);
+
+  // Secciones del home: hero y destacadas (el bloque "Cómo funciona" se quitó; ahora vive en su página dedicada).
+  const sections: ReactNode[] = [
+      <section className="hero" key="hero">
         <div className="container hero-grid">
           <div>
-            <span className="eyebrow">Motos nuevas + financiamiento powered by Finva</span>
-            <h1>Encuentra tu moto y calcula cuánto pagarías al mes.</h1>
-            <p>Explora motos por presupuesto, uso y marca. Inicia tu compra en minutos con opciones de financiamiento gestionadas por Finva.</p>
+            <span className="eyebrow">{HERO_EYEBROW}</span>
+            <h1>{HERO_TITLE}</h1>
+            <p>{HERO_DESCRIPTION}</p>
             <SearchBox brands={brands} />
           </div>
           <div className="hero-card">
-            <HeroMotoRotator slides={heroSlides} />
-            <div className="kpi-strip">
-              <div className="kpi"><strong>1</strong><span className="small muted">Elige moto</span></div>
-              <div className="kpi"><strong>2</strong><span className="small muted">Calcula pago</span></div>
-              <div className="kpi"><strong>3</strong><span className="small muted">Inicia compra</span></div>
-              <div className="kpi"><strong>4</strong><span className="small muted">Finva gestiona</span></div>
-            </div>
+            <VideoModalCard
+              thumbnail={<HeroMotoRotator slides={heroSlides} interactive={false} />}
+              location="home_hero"
+              videoId={HERO_VIDEO_ID}
+              orientation="horizontal"
+              applyMotos={applyMotos}
+            />
+            <HomeStepsLinks />
           </div>
         </div>
-      </section>
+      </section>,
 
-      <section className="section">
+      <section className="section" key="featured">
         <div className="container">
           <div className="section-head">
-            <div><h2>Motos destacadas</h2><p>Ordenadas por intención comercial: disponibilidad, precio, financiamiento y conversión esperada.</p></div>
-            <Link className="btn" href="/motos">Ver catálogo</Link>
+            <div><h2>{FEATURED_HEADING}</h2><p>{FEATURED_SUBTITLE}</p></div>
+            <Link className="btn" href="/motos-a-credito">{FEATURED_CTA}</Link>
           </div>
           <div className="grid">{featured.map((moto) => <MotorcycleCard moto={moto} key={moto.id} />)}</div>
         </div>
-      </section>
+      </section>,
+  ];
 
-      <section id="como-funciona" className="section--como-fullpage" aria-labelledby="como-funciona-title">
-        <div className="como-funciona-shell">
-          <div className="hero-card hero-card--como-fullpage">
-            <div className="como-funciona-body">
-              <h3 id="como-funciona-title">Cómo funciona</h3>
-              <div className="como-funciona-steps">
-                <p><strong>1.</strong> Encuentra tu moto.</p>
-                <p><strong>2.</strong> Calcula enganche y mensualidad estimada.</p>
-                <p><strong>3.</strong> WhatsApp e intención de compra.</p>
-                <p><strong>4.</strong> Finva continúa evaluación, documentos, aprobación y cierre.</p>
-              </div>
-            </div>
-            <Link className="btn green full como-funciona-cta" href="/motos-a-credito">Ver motos a crédito</Link>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+  return <main>{sections}</main>;
 }

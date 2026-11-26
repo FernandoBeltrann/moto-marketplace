@@ -53,7 +53,7 @@ export default async function ResultPage({ searchParams }: Props) {
   const back =
     params.motorcycle_brand && params.motorcycle_slug
       ? `/motos/${params.motorcycle_brand}/${params.motorcycle_slug}`
-      : '/motos';
+      : '/motos-a-credito';
   const publicKey = getMercadoPagoPublicKey();
   const copy = STATUS_COPY[status] ?? STATUS_COPY.rejected;
 
