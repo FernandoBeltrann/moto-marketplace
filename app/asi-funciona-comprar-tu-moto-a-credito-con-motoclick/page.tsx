@@ -243,7 +243,7 @@ export default async function AsiFuncionaPage() {
         <p className="small muted" style={{ marginBottom: 12 }}>
           <Link href="/">Inicio</Link>
           {' · '}
-          <Link href="/motos-a-credito">Motos a crédito</Link>
+          <Link href="/motos-a-credito">Moto a crédito</Link>
         </p>
         <h1 style={{ marginTop: 0 }}>Así funciona comprar tu moto a crédito con Motoclick</h1>
         <p>
@@ -312,7 +312,7 @@ export default async function AsiFuncionaPage() {
 
         <p className="small muted" style={{ marginTop: 40 }}>
           ¿Ya sabes qué moto quieres?{' '}
-          <Link href="/motos-a-credito">Ver motos a crédito</Link>.
+          <Link href="/motos-a-credito">Elige tu moto a crédito</Link>.
         </p>
       </div>
     </main>

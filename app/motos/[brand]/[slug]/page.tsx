@@ -76,7 +76,7 @@ export default async function ProductPage({ params }: Props) {
       <div className="container product-grid">
         <div>
           <Link href="/motos-a-credito" className="small muted">
-            ← Volver al catálogo
+            ← Elige otra moto a crédito
           </Link>
           <MotorcycleGallery
             images={galleryImages}
