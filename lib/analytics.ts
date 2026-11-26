@@ -1,7 +1,7 @@
 /**
  * Analytics centralizado.
  *
- * - `track()` → PostHog, Meta Pixel, gtag (eventos legacy internos; sin cambios).
+ * - `track()` → PostHog, TikTok, gtag (eventos internos). Meta: lib/meta/pixel.ts.
  * - `trackApplication*` → dataLayer, eventos nuevos de conversión para GTM/Ads.
  *
  * Eventos GTM ya configurados (view_motorcycle, calculator_interaction, filter_catalog)
@@ -109,7 +109,7 @@ export function trackWhatsappClicked(params: {
 /**
  * Video "Cómo funciona" del hero del home.
  * - dataLayer (`video_open`) → GA4 vía GTM (igual que los demás eventos nuevos).
- * - track() → PostHog / Meta / gtag, para tenerlo también en los funnels de PostHog.
+ * - track() → PostHog / gtag, para tenerlo también en los funnels de PostHog.
  */
 export function trackVideoOpen(params: { videoId: string; location: string }) {
   const payload = { video_id: params.videoId, video_location: params.location };
@@ -135,11 +135,14 @@ export function trackHomeStepClick(params: { step: string; position: number }) {
   track('home_step_click', payload);
 }
 
-/** PostHog / Meta / gtag — sin cambios respecto al setup anterior. */
+/**
+ * PostHog / TikTok / gtag. Meta ya no recibe estos eventos como `trackCustom`
+ * (FIN-151): los momentos que importan salen como eventos estándar desde
+ * lib/meta/pixel.ts, con copia por servidor.
+ */
 export function track(event: AnalyticsEvent, properties: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('marketplace:event', { detail: { event, properties } }));
-  window.fbq?.('trackCustom', event, properties);
   window.ttq?.track(event, properties);
   window.gtag?.('event', event, properties);
   if (!posthogProjectToken()) return;

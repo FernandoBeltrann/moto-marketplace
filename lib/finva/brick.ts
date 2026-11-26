@@ -12,6 +12,7 @@
 import type { ReactNode } from 'react';
 import { track } from '@/lib/analytics';
 import { fireFinanceConversion } from '@/lib/finva/conversion';
+import { metaEvent, motoContent } from '@/lib/meta/pixel';
 
 /** Origen donde vive la app de Finva: sirve el SDK y el iframe del checkout. */
 export const SDK_ORIGIN =
@@ -51,7 +52,16 @@ export type FinvaBrickOptions = {
     onSubmit?: (data: unknown) => void;
     onApproved?: (solicitud: unknown) => void;
     onError?: (error: unknown) => void;
+    /** FIN-150/151: el package avisa `start_financing` y `click_whatsapp` con su `eventId`. */
+    onEvent?: (event: FinvaHostEvent) => void;
   };
+};
+
+/** Mensaje `finva:event` del package (sin datos personales). */
+export type FinvaHostEvent = {
+  name: 'start_financing' | 'click_whatsapp' | string;
+  eventId: string;
+  props?: Record<string, string | number | boolean>;
 };
 
 export type FinvaBrickController = {
@@ -124,16 +134,20 @@ const GOOGLE_ADS_ID_RE = /^AW-\d+(?:\/[A-Za-z0-9_-]+)?$/;
 /**
  * IDs de tracking del comercio que el brick carga *dentro* del iframe.
  * Solo viajan props no sensibles (monto, paso, folio); nunca PII.
+ *
+ * FIN-151: ya no se pasa el pixel de Meta. Sus eventos dentro del iframe salían
+ * con las cookies de `package.finva-app.com` y sin `eventID`; ahora
+ * `InitiateCheckout` y `Contact` salen desde este sitio (`onEvent`) y `Lead`,
+ * `CompleteRegistration` y `SubmitApplication` los manda el backend de Finva.
  */
 export function merchantAnalytics(): FinvaBrickOptions['analytics'] {
-  const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || undefined;
   const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() || '';
   const label = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL?.trim() || '';
   const candidate = adsId && label ? `${adsId}/${label}` : adsId;
   const googleAdsId = GOOGLE_ADS_ID_RE.test(candidate) ? candidate : undefined;
 
-  if (!metaPixelId && !googleAdsId) return undefined;
-  return { metaPixelId, googleAdsId };
+  if (!googleAdsId) return undefined;
+  return { googleAdsId };
 }
 
 /** El folio llega como string o como objeto según el flujo; lo normalizamos. */
@@ -172,7 +186,8 @@ export function buildFinvaProduct(
 
 /**
  * Callbacks de ciclo de vida del brick con el tracking del marketplace cableado.
- * `onReady`/`onSubmit`/`onApproved` disparan eventos PostHog/Pixel/Ads; el
+ * `onReady`/`onSubmit`/`onApproved` disparan eventos PostHog/Ads; `onEvent`
+ * dispara `InitiateCheckout` y `Contact` de Meta con el `eventId` del package; el
  * `onError` solo loggea. `onReadyExtra` permite que el componente reaccione
  * (ej. ocultar el spinner del embebido) sin reescribir los callbacks.
  */
@@ -206,6 +221,14 @@ export function buildFinvaCallbacks(
     },
     onError: (error) => {
       console.error('[Finva] error del brick', error);
+    },
+    onEvent: (event) => {
+      const product = motoContent({ ...motorcycle, price });
+      if (event?.name === 'start_financing') {
+        metaEvent('InitiateCheckout', product, event.eventId);
+      } else if (event?.name === 'click_whatsapp') {
+        metaEvent('Contact', { content_ids: product.content_ids }, event.eventId);
+      }
     },
   };
 }

@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { cashPrice } from '@/lib/catalog-format';
 import type { Motorcycle } from '@/types/motorcycle';
 import { MotorcycleCard } from './MotorcycleCard';
 import { trackCatalogFilter } from '@/lib/gtm';
 import { track } from '@/lib/analytics';
+import { metaBrowserEvent } from '@/lib/meta/pixel';
 
 export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
   const searchParams = useSearchParams();
@@ -14,6 +15,14 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
   const [brand, setBrand] = useState(() => searchParams.get('brand') ?? '');
   const [category, setCategory] = useState(() => searchParams.get('category') ?? '');
   const [maxPrice, setMaxPrice] = useState(() => searchParams.get('budget') ?? '');
+
+  // FIN-151: `Search` de Meta (solo navegador) cuando deja de escribir 1 s.
+  useEffect(() => {
+    const text = q.trim();
+    if (text.length < 3) return;
+    const timer = window.setTimeout(() => metaBrowserEvent('Search', { search_string: text }), 1000);
+    return () => window.clearTimeout(timer);
+  }, [q]);
 
   const brands = Array.from(new Set(motos.map((m) => m.brand))).sort();
   const categories = Array.from(new Set(motos.map((m) => m.category))).sort();
@@ -49,6 +58,7 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
             if (e.target.value) {
               trackCatalogFilter('brand', e.target.value);
               track('filter_catalog', { filter: 'brand', value: e.target.value });
+              metaBrowserEvent('Search', { search_string: `marca ${e.target.value}` });
             }
           }}
         >
@@ -67,6 +77,7 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
             if (e.target.value) {
               trackCatalogFilter('category', e.target.value);
               track('filter_catalog', { filter: 'category', value: e.target.value });
+              metaBrowserEvent('Search', { search_string: `uso ${e.target.value}` });
             }
           }}
         >
@@ -85,6 +96,7 @@ export function CatalogClient({ motos }: { motos: Motorcycle[] }) {
             if (e.target.value) {
               trackCatalogFilter('maxPrice', Number(e.target.value));
               track('filter_catalog', { filter: 'maxPrice', value: e.target.value });
+              metaBrowserEvent('Search', { search_string: `hasta ${e.target.value}` });
             }
           }}
         >

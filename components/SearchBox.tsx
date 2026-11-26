@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { track } from '@/lib/analytics';
+import { metaBrowserEvent } from '@/lib/meta/pixel';
 
 export function SearchBox({ brands }: { brands: string[] }) {
   const router = useRouter();
@@ -13,6 +14,11 @@ export function SearchBox({ brands }: { brands: string[] }) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     track('search_catalog', { brand, budget, useCase });
+    metaBrowserEvent('Search', {
+      search_string: [brand && `marca ${brand}`, budget && `hasta ${budget}`, useCase && `uso ${useCase}`]
+        .filter(Boolean)
+        .join(' ') || 'catálogo completo',
+    });
     const params = new URLSearchParams();
     if (brand) params.set('brand', brand);
     if (budget) params.set('budget', budget);
