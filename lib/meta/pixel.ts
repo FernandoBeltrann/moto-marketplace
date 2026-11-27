@@ -49,9 +49,51 @@ function withFbq(run: (fbq: Fbq) => void) {
   }, 100);
 }
 
-function fbclidFromUrl(): string | undefined {
+const FBCLID_RE = /^[A-Za-z0-9_-]{10,500}$/;
+const FBC_RE = /^fb\.\d\.\d{10,13}\.[A-Za-z0-9_.-]{1,1000}$/;
+const FBC_MAX_AGE_S = 90 * 24 * 60 * 60;
+
+function readBrowserCookie(name: string): string | undefined {
+  for (const part of document.cookie.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) {
+      try {
+        return decodeURIComponent(rest.join('='));
+      } catch {
+        return rest.join('=');
+      }
+    }
+  }
+  return undefined;
+}
+
+/** `; domain=.motoclick.mx` (el mismo dominio donde el pixel deja `_fbc`); nada en localhost. */
+function cookieDomain(): string {
+  const host = window.location.hostname;
+  if (host === 'localhost' || !host.includes('.') || /^[\d.]+$/.test(host)) return '';
+  return `; domain=.${host.replace(/^www\./, '')}`;
+}
+
+/**
+ * FIN-149: `fbc` con la hora del clic al anuncio, no la de cada evento.
+ *
+ * Si la página llega con `fbclid` y no hay una cookie `_fbc` de ese mismo
+ * clic, la dejamos nosotros (`fb.1.<ms de llegada>.<fbclid>`, 90 días), igual
+ * que el pixel. El pixel la respeta al cargar porque es del mismo `fbclid`, y
+ * si el pixel está bloqueado el servidor igual la recibe en cada evento,
+ * también en las páginas que ya no traen `fbclid`.
+ */
+export function rememberMetaClick(): string | undefined {
   try {
-    return new URLSearchParams(window.location.search).get('fbclid') || undefined;
+    const current = readBrowserCookie('_fbc');
+    const fbclid = new URLSearchParams(window.location.search).get('fbclid') ?? '';
+    if (FBCLID_RE.test(fbclid) && !current?.endsWith(`.${fbclid}`)) {
+      const value = `fb.1.${Date.now()}.${fbclid}`;
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `_fbc=${value}; path=/; max-age=${FBC_MAX_AGE_S}; SameSite=Lax${cookieDomain()}${secure}`;
+      return value;
+    }
+    return current && FBC_RE.test(current) ? current : undefined;
   } catch {
     return undefined;
   }
@@ -63,7 +105,7 @@ function sendCopy(name: MetaServerEventName, eventId: string, data: MetaCustomDa
     event_id: eventId,
     event_source_url: `${window.location.origin}${window.location.pathname}`,
     custom_data: Object.keys(data).length ? data : undefined,
-    fbclid: fbclidFromUrl(),
+    fbc: rememberMetaClick(),
   });
   try {
     if (navigator.sendBeacon?.(ENDPOINT, new Blob([body], { type: 'application/json' }))) return;

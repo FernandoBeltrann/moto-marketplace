@@ -32,7 +32,12 @@ export type MetaEventBody = {
   event_id: string;
   event_source_url: string;
   custom_data?: MetaCustomData;
-  fbclid?: string;
+  /**
+   * `fb.1.<ms del clic>.<fbclid>` que guardó el navegador al llegar del
+   * anuncio (ver `rememberMetaClick` en `pixel.ts`). Respaldo de la cookie
+   * `_fbc` por si el navegador no la manda.
+   */
+  fbc?: string;
 };
 
 export type MetaCapiConfig = {
@@ -46,8 +51,7 @@ export type MetaCapiConfig = {
 
 const EVENT_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const FBP_RE = /^fb\.\d\.\d{10,13}\.\d+(\.[A-Za-z0-9_-]{1,40})?$/;
-const FBC_RE = /^fb\.\d\.\d{10,13}\.[A-Za-z0-9_.-]{1,1000}$/;
-const FBCLID_RE = /^[A-Za-z0-9_-]{10,500}$/;
+export const FBC_RE = /^fb\.\d\.\d{10,13}\.[A-Za-z0-9_.-]{1,1000}$/;
 const IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
 const IPV6_RE = /^[0-9a-fA-F:]{2,45}$/;
 
@@ -122,7 +126,7 @@ export function parseEventBody(value: unknown, allowedHosts: string[]): MetaEven
   };
   const custom = cleanCustomData(raw.custom_data);
   if (custom) body.custom_data = custom;
-  if (typeof raw.fbclid === 'string' && FBCLID_RE.test(raw.fbclid)) body.fbclid = raw.fbclid;
+  if (typeof raw.fbc === 'string' && raw.fbc.length <= 1100 && FBC_RE.test(raw.fbc)) body.fbc = raw.fbc;
   return body;
 }
 
@@ -151,9 +155,9 @@ export function readCookie(header: string | null, name: string): string | undefi
 }
 
 /**
- * Evento para Conversions API. `fbc` sale de la cookie `_fbc`; si todavía no
- * existe pero la página trae `fbclid`, se arma como pide Meta:
- * `fb.1.<ms>.<fbclid>`.
+ * Evento para Conversions API. `fbc` sale de la cookie `_fbc` o, si el
+ * navegador no la mandó, del que guardó al llegar del anuncio. Nunca se arma
+ * aquí con la hora del evento: Meta pide la hora del clic (FIN-149).
  */
 export function buildServerEvent(
   body: MetaEventBody,
@@ -170,7 +174,7 @@ export function buildServerEvent(
   if (fbp && FBP_RE.test(fbp)) userData.fbp = fbp;
   const fbc = readCookie(cookies, '_fbc');
   if (fbc && FBC_RE.test(fbc)) userData.fbc = fbc;
-  else if (body.fbclid) userData.fbc = `fb.1.${now.getTime()}.${body.fbclid}`;
+  else if (body.fbc) userData.fbc = body.fbc;
 
   const event: Record<string, unknown> = {
     event_name: body.event_name,
